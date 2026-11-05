@@ -1,0 +1,186 @@
+# =============================================================================
+# 自动发布到 GitHub Releases（Eta-Refined）
+# -----------------------------------------------------------------------------
+# 触发：
+#   * push tag `v*`     → 正式版（tag 名即版本，校验与 output-metadata.json 的
+#                         versionName 一致，使用 --verify-tag）
+#   * push main 分支    → 预发布 nightly：`v<versionName>-nightly.<shortsha>`（--prerelease）
+#   * workflow_dispatch → 同 main 逻辑（nightly）；可选输入 version 覆盖标签里的版本名
+#
+# 流程：
+#   checkout → 复用 ./.github/actions/setup-build 安装环境 →
+#   无条件跑单元测试（保证 main 首次推送在未配置 Secrets 时也至少测试通过、不红）→
+#   还原签名证书（缺 Secrets 时优雅降级：ready=false，跳过发布，任务仍成功）→
+#   仅当证书就绪时才 assembleRelease → apksigner 校验 → 整理 APK →
+#   gh release create 上传 Release APK 资产。
+#
+# 优雅降级：全新仓库首次 push main 若尚未配置签名 Secrets，工作流不会失败；
+#   一旦配置了 ETA_REFINED_*（或兼容 ETA_RELEASE_*）Secrets，tag / main / 手动
+#   三条触发即自动发布。
+#
+# 签名 Secrets：改用 ETA_REFINED_ 新前缀，同时兼容旧的 ETA_RELEASE_ 名称
+#   （下方用 `||` 回退：新名优先，旧名兜底）。
+#   ETA_REFINED_KEYSTORE_BASE64 / ETA_REFINED_STORE_PASSWORD
+#   ETA_REFINED_KEY_ALIAS      / ETA_REFINED_KEY_PASSWORD
+#   注意：Gradle（app/build.gradle.kts）读取的是 ETA_RELEASE_* 环境变量名，
+#   因此这里把 Secret 映射到旧的 env 变量名后再交给 Gradle。
+#
+# 权限：contents: write（创建 Release / tag）。失败不发布、不改动源码。
+# 依赖：gh CLI 在 GitHub Actions 中已预装，GH_TOKEN 使用 secrets.GITHUB_TOKEN。
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "可选：覆盖 nightly 标签中的版本名（例如 3.4.0，可省略前导 v）"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  # 发布过程不中途取消，避免出现半上传的 Release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: 测试 / 构建 / 发布
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: 配置构建环境
+        uses: ./.github/actions/setup-build
+
+      - name: 单元测试
+        # 无条件运行：即使尚未配置签名 Secrets，main / tag / 手动触发也至少保证测试通过、任务不红
+        run: >-
+          ./gradlew --no-daemon --no-configuration-cache
+          :app:testDebugUnitTest
+
+      - name: 还原发布证书
+        id: sign
+        env:
+          ETA_REFINED_KEYSTORE_BASE64: ${{ secrets.ETA_REFINED_KEYSTORE_BASE64 || secrets.ETA_RELEASE_KEYSTORE_BASE64 }}
+          ETA_REFINED_STORE_PASSWORD: ${{ secrets.ETA_REFINED_STORE_PASSWORD || secrets.ETA_RELEASE_STORE_PASSWORD }}
+          ETA_REFINED_KEY_ALIAS: ${{ secrets.ETA_REFINED_KEY_ALIAS || secrets.ETA_RELEASE_KEY_ALIAS }}
+          ETA_REFINED_KEY_PASSWORD: ${{ secrets.ETA_REFINED_KEY_PASSWORD || secrets.ETA_RELEASE_KEY_PASSWORD }}
+        # 优雅降级：缺 Secrets 时不失败，输出 ready=false 并跳过后续发布步骤
+        run: |
+          if [[ -z "$ETA_REFINED_KEYSTORE_BASE64" ||
+                -z "$ETA_REFINED_STORE_PASSWORD" ||
+                -z "$ETA_REFINED_KEY_ALIAS" ||
+                -z "$ETA_REFINED_KEY_PASSWORD" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置签名 Secrets，跳过发布（单元测试已完成，任务保持成功）。"
+            exit 0
+          fi
+          printf '%s' "$ETA_REFINED_KEYSTORE_BASE64" \
+            | base64 --decode \
+            > "$RUNNER_TEMP/eta-refined-release.jks"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Release 构建
+        if: steps.sign.outputs.ready == 'true'
+        env:
+          # Gradle 读取的是 ETA_RELEASE_* env 变量；Secret 名走 ETA_REFINED_ 新前缀并兼容旧名
+          ETA_RELEASE_STORE_FILE: ${{ runner.temp }}/eta-refined-release.jks
+          ETA_RELEASE_STORE_PASSWORD: ${{ secrets.ETA_REFINED_STORE_PASSWORD || secrets.ETA_RELEASE_STORE_PASSWORD }}
+          ETA_RELEASE_KEY_ALIAS: ${{ secrets.ETA_REFINED_KEY_ALIAS || secrets.ETA_RELEASE_KEY_ALIAS }}
+          ETA_RELEASE_KEY_PASSWORD: ${{ secrets.ETA_REFINED_KEY_PASSWORD || secrets.ETA_RELEASE_KEY_PASSWORD }}
+        run: >-
+          ./gradlew --no-daemon --no-configuration-cache
+          :app:assembleRelease
+
+      - name: 校验并整理 APK
+        id: apk
+        if: steps.sign.outputs.ready == 'true'
+        env:
+          # workflow_dispatch 时才有的输入，push 事件下为空字符串
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          release_apks=(app/build/outputs/apk/release/Eta-v*.apk)
+          if [[ ${#release_apks[@]} -ne 1 ]]; then
+            echo "::error::Release APK 数量异常（${#release_apks[@]}），期望 1 个。"
+            exit 1
+          fi
+
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" \
+            -type f -name apksigner | sort -V | tail -n 1)"
+          if [[ -z "$apksigner_path" ]]; then
+            echo "::error::未找到 apksigner。"
+            exit 1
+          fi
+
+          # 签名校验：确保产物确实被发布证书签名
+          "$apksigner_path" verify "${release_apks[0]}"
+
+          version_name="$(jq -r '.elements[0].versionName' \
+            app/build/outputs/apk/release/output-metadata.json)"
+          short_sha="${GITHUB_SHA::7}"
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            # 正式版：标签必须等于 v<versionName>，避免标签与安装包版本错位
+            if [[ "$GITHUB_REF_NAME" != "v$version_name" ]]; then
+              echo "::error::标签 $GITHUB_REF_NAME 与 versionName $version_name 不一致。"
+              exit 1
+            fi
+            tag="$GITHUB_REF_NAME"
+            prerelease="false"
+          else
+            # nightly / 手动触发：v<versionName>-nightly.<shortsha>
+            base_version="$version_name"
+            manual_version="${MANUAL_VERSION#v}"
+            if [[ -n "$manual_version" ]]; then
+              base_version="$manual_version"
+            fi
+            tag="v${base_version}-nightly.${short_sha}"
+            prerelease="true"
+          fi
+
+          mkdir -p dist
+          asset="Eta-${tag}.apk"
+          cp "${release_apks[0]}" "dist/${asset}"
+
+          {
+            echo "tag=$tag"
+            echo "version_name=$version_name"
+            echo "prerelease=$prerelease"
+            echo "apk_path=dist/${asset}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 创建 GitHub Release
+        if: steps.sign.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.apk.outputs.tag }}
+          PRERELEASE: ${{ steps.apk.outputs.prerelease }}
+          APK_PATH: ${{ steps.apk.outputs.apk_path }}
+        run: |
+          args=(--repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --target "$GITHUB_SHA")
+          if [[ "$PRERELEASE" == "true" ]]; then
+            # nightly：标签由 gh 依据 --target 创建，标记为预发布
+            args+=(--prerelease)
+          else
+            # 正式版：tag 已存在，强制校验
+            args+=(--verify-tag)
+          fi
+          gh release create "$TAG" "$APK_PATH" "${args[@]}"

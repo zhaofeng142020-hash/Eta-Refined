@@ -1,0 +1,50 @@
+Eta-Refined
+===========
+
+This product is a derivative work (fork) of the Eta project.
+
+Upstream project : Eta
+Upstream URL     : https://github.com/Mangi-11/Eta
+Original author  : Mangi-11 (蛮吉)
+Original copyright: Copyright © 2026 蛮吉 (Mangi-11).
+
+Derivative note
+---------------
+Eta-Refined reworks only the UI/UX and engineering (Mist Glass design token
+layer, first-run onboarding wizard, unified error messages, documentation and
+release workflow). All business functionality and core system integration are
+inherited from the upstream Eta project. Eta-Refined is an unofficial
+derivative and is not affiliated with, sponsored by, or endorsed by the
+original author.
+
+The UI/UX design language is informed by the dsh-Go project
+(https://github.com/ccch1mneyyy/dsh-Go, AGPL-3.0). Only design ideas are
+referenced; no source code is copied, synchronized, or merged from that project.
+
+License
+-------
+This software is licensed under the PolyForm Noncommercial License 1.0.0.
+
+Full license text : LICENSE
+License URL       : https://polyformproject.org/licenses/noncommercial/1.0.0
+
+Required Notice (as required by the PolyForm Noncommercial License 1.0.0):
+
+Required Notice: Copyright © 2026 蛮吉 (Mangi-11).
+
+Any person who receives a copy of any part of this software must also receive
+a copy of the license terms (or the URL above) together with this Required
+Notice text.
+
+Third-party components
+----------------------
+This software includes or depends on third-party components that remain under
+their own licenses, including (non-exhaustive): Miuix (Apache-2.0),
+JetBrains Mono (SIL OFL 1.1), intellij-markdown (Apache-2.0), libxposed API
+(Apache-2.0), PRoot/talloc/libandroid-shmem (GPL/LGPL/BSD), jsoup (MIT),
+Nimbus JOSE + JWT (Apache-2.0), DexKit (Apache-2.0 / LGPL-3.0), Material Icons
+(Apache-2.0), Lobe Icons (MIT), Android Hidden API Bypass (Apache-2.0), and
+models.dev catalog (MIT). Their original license rights are not restricted by
+this project's noncommercial license.
+
+See ATTRIBUTION.md and docs/THIRD_PARTY_NOTICES.md for details.

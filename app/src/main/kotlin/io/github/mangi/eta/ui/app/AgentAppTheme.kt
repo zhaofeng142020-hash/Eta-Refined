@@ -12,6 +12,8 @@ import io.github.mangi.eta.data.model.AppearanceAccentColor
 import io.github.mangi.eta.data.model.AppearancePaletteStyle
 import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.model.AppearanceThemeMode
+import io.github.mangi.eta.ui.theme2.RefinedUi
+import io.github.mangi.eta.ui.theme2.mistGlassColors
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -68,7 +70,17 @@ fun AgentAppTheme(
     LaunchedEffect(isDark) { onResolvedDarkModeChange(isDark) }
 
     MiuixTheme(controller = controller) {
-        val baseColors = MiuixTheme.colorScheme
+        // Eta-Refined：Mist Glass 令牌层接入点（单一 choke point，361 处既有
+        // MiuixTheme.colorScheme.* 调用无需改动即可获得新视觉语言）。
+        // 启用 Monet 动态取色时优先遵循用户/系统的动态色，Mist Glass 让位。
+        val refinedColors = remember(isDark, appearance.accentColor) {
+            mistGlassColors(isDark, appearance.accentColor)
+        }
+        val baseColors = if (RefinedUi.USE_MIST_GLASS && !appearance.monetEnabled) {
+            refinedColors
+        } else {
+            MiuixTheme.colorScheme
+        }
         val pureBlack = appearance.monetEnabled && appearance.pureBlackEnabled && isDark
         val themedColors = remember(baseColors, pureBlack) {
             if (pureBlack) {

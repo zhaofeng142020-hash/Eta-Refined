@@ -1,0 +1,309 @@
+# =============================================================================
+# 上游同步工作流（Eta-Refined）
+# -----------------------------------------------------------------------------
+# 策略：
+#   每天定时（UTC 20:00）或手动触发，把 Mangi-11/Eta 的 main 合并到本项目 main。
+#   * 上游只有 Mangi-11/Eta 一个来源，本工作流绝不涉及 dsh-Go 或任何其它仓库。
+#   * 无冲突：把合并结果推到 sync/upstream-<date> 分支，用 gh 向上游开 PR，
+#     等待人工 review + CI，**绝不自动合并**。
+#   * 有冲突：绝不使用 `-X ours` / `-X theirs`，绝不静默覆盖；先记录冲突文件，
+#     执行 `git merge --abort`，再开 Issue（标签 upstream-sync、conflict），
+#     同时推一个带 `[CONFLICT]` 标记说明的分支并开 PR，交人工解决。
+#   * 合并后构建失败：同样开 Issue 通知，不推送合并结果、不开合并 PR。
+#
+# 保留区清单（重构归属 Eta-Refined，冲突时一律人工处理并保留重构改动）：
+#   - app/src/main/kotlin/.../ui/theme2/        （新版设计系统 / 主题）
+#   - app/src/main/kotlin/.../ui/onboarding/    （重构后的引导流程）
+#   - README.md、README_EN.md                   （重构版说明）
+#   - docs/                                     （重构版文档）
+#   - app/build.gradle.kts                      （包名 / 版本 / 签名）
+#   - .github/                                  （CI 与发布流水线）
+#   以上清单按重构进度维护；上游对这些路径的改动必须在本地手工合并后保留本地实现。
+#
+# 权限：contents / pull-requests / issues 写权限，使用内置 secrets.GITHUB_TOKEN。
+# 注意：由 GITHUB_TOKEN 创建的分支/PR 默认不会再触发其它工作流（防递归），
+#       因此 PR 上的 PR Check 可能需要维护者手动 re-run 后才会出现。
+# =============================================================================
+
+name: Sync Upstream
+
+on:
+  schedule:
+    # 每天 UTC 20:00（北京时间次日 04:00）同步一次
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  # 同步任务串行执行，不中途取消，避免半推送的分支
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: 同步上游 Mangi-11/Eta
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UPSTREAM_REPO: Mangi-11/Eta
+      UPSTREAM_URL: https://github.com/Mangi-11/Eta.git
+
+    steps:
+      - name: 检出 main（持久化 token 以便推送）
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 需要把同步分支 + 冲突说明分支推回本仓库，因此必须持久化凭据
+          persist-credentials: true
+
+      - name: 配置 git user 与合并策略
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 确保 merge 不会弹出编辑器
+          git config merge.conflictStyle diff3
+
+      - name: 计算日期与分支名
+        id: vars
+        run: |
+          date="$(date -u +%Y%m%d)"
+          echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "branch=sync/upstream-$date" >> "$GITHUB_OUTPUT"
+
+      - name: 确保同步标签存在
+        run: |
+          # --force 在标签已存在时更新其描述/颜色，不会重复创建
+          gh label create upstream-sync \
+            --color "0E8A16" \
+            --description "上游 Mangi-11/Eta 同步相关" \
+            --force || true
+          gh label create conflict \
+            --color "D93F0B" \
+            --description "上游合并冲突，需人工处理" \
+            --force || true
+
+      - name: 添加上游并拉取 main
+        run: |
+          # 仅添加 Mangi-11/Eta 一个上游；不得添加 dsh-Go 等其它仓库
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream "$UPSTREAM_URL"
+          else
+            git remote add upstream "$UPSTREAM_URL"
+          fi
+          git fetch upstream main --no-tags
+
+      - name: 创建同步分支
+        run: |
+          branch="${{ steps.vars.outputs.branch }}"
+          # 同一天重复触发时做幂等清理（可能覆盖当天早先失败的残留分支）
+          git branch -D "$branch" >/dev/null 2>&1 || true
+          git push origin --delete "$branch" >/dev/null 2>&1 || true
+          git switch -c "$branch"
+
+      - name: 尝试合并上游 main
+        id: merge
+        run: |
+          upstream_commits="$(git rev-list --count HEAD..upstream/main)"
+          echo "upstream_commits=$upstream_commits" >> "$GITHUB_OUTPUT"
+
+          if [[ "$upstream_commits" -eq 0 ]]; then
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::上游无新提交，跳过本次同步。"
+            exit 0
+          fi
+
+          # 在合并前记录本次将要合入的上游提交清单，供 PR 正文使用
+          git log --no-merges --pretty=format:'- %h %s (%an)' \
+            HEAD..upstream/main > "$RUNNER_TEMP/new-commits.txt"
+
+          echo "empty=false" >> "$GITHUB_OUTPUT"
+          # --no-edit 避免打开编辑器；不使用 -X ours/theirs，任何冲突都会让命令失败
+          if git merge upstream/main --no-edit; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::上游合并成功，无冲突。"
+          else
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::上游合并发生冲突，进入人工处理流程。"
+          fi
+
+      # ---------- 无冲突：构建校验 → 推分支 → 开 PR ----------
+
+      - name: 配置构建环境（合并后校验）
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'false'
+        uses: ./.github/actions/setup-build
+
+      - name: 合并后构建校验
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'false'
+        id: build
+        run: >-
+          ./gradlew --no-daemon --no-configuration-cache --continue
+          :app:testDebugUnitTest :app:assembleDebug
+
+      - name: 推送同步分支并创建 PR
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'false' && steps.build.outcome == 'success'
+        env:
+          BRANCH: ${{ steps.vars.outputs.branch }}
+          DATE: ${{ steps.vars.outputs.date }}
+        run: |
+          git push --set-upstream origin "$BRANCH"
+
+          {
+            echo "## 上游同步（Mangi-11/Eta → main）"
+            echo
+            echo "自动从 \`Mangi-11/Eta\` 的 \`main\` 合并，未产生冲突。"
+            echo "**本 PR 不会自动合并**，请人工 review 并等待 CI 通过后再合并。"
+            echo
+            echo "### 本次合入的上游提交"
+            cat "$RUNNER_TEMP/new-commits.txt" || true
+            echo
+            echo
+            echo "### 合并后校验"
+            echo "- \`./gradlew :app:testDebugUnitTest\` 通过"
+            echo "- \`./gradlew :app:assembleDebug\` 通过"
+            echo
+            echo "> 由 \`GITHUB_TOKEN\` 创建，PR Check 可能不会自动触发；合并前请手动 re-run 或确认 CI。"
+            echo "> 合并前请确认 UI/主题/引导/文档等重构改动未被上游覆盖（保留区清单见工作流顶部注释）。"
+          } > "$RUNNER_TEMP/pr-body.md"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(sync): 同步上游 Mangi-11/Eta 更新 $DATE" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --label upstream-sync \
+            || echo "::warning::PR 创建失败（可能同分支 PR 已存在），请手动检查。"
+
+      # ---------- 构建失败：建 Issue，不推送、不开合并 PR ----------
+
+      - name: 创建构建失败 Issue
+        if: failure() && steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'false' && steps.build.outcome == 'failure'
+        env:
+          DATE: ${{ steps.vars.outputs.date }}
+        run: |
+          {
+            echo "## 上游同步构建失败（Mangi-11/Eta → main）"
+            echo
+            echo "合并 \`upstream/main\` 后 \`:app:testDebugUnitTest\` / \`:app:assembleDebug\` 失败。"
+            echo "**未推送合并结果，也未创建合并 PR。**"
+            echo
+            echo "### 可能原因"
+            echo "上游改动与 Eta-Refined 重构在语义上冲突（编译错误、API 变更、资源引用失效等）。"
+            echo
+            echo "### 处理建议"
+            echo "1. 本地执行 \`git fetch upstream main && git merge upstream/main\` 复现。"
+            echo "2. 保留重构改动的前提下修复编译/测试问题。"
+            echo "3. 本地 \`./gradlew :app:testDebugUnitTest :app:assembleDebug\` 通过后再手动开 PR。"
+            echo
+            echo "构建日志见对应 Actions 运行记录。"
+          } > "$RUNNER_TEMP/build-issue.md"
+
+          gh issue create \
+            --title "chore(sync): 上游同步构建失败 $DATE" \
+            --body-file "$RUNNER_TEMP/build-issue.md" \
+            --label upstream-sync
+
+      # ---------- 有冲突：记录冲突 → abort → Issue → [CONFLICT] PR ----------
+
+      - name: 收集冲突文件并中止合并
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'true'
+        id: conflict
+        run: |
+          # 仅列出未合并（U）的文件，作为冲突清单
+          git diff --name-only --diff-filter=U > "$RUNNER_TEMP/upstream-conflicts.txt" || true
+          conflict_count="$(wc -l < "$RUNNER_TEMP/upstream-conflicts.txt" | tr -d ' ')"
+          echo "count=$conflict_count" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<EOF_FILES"
+            cat "$RUNNER_TEMP/upstream-conflicts.txt"
+            echo "EOF_FILES"
+          } >> "$GITHUB_OUTPUT"
+          # 绝不在合并树中留下半边改动
+          git merge --abort
+
+      - name: 创建冲突 Issue
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'true'
+        env:
+          DATE: ${{ steps.vars.outputs.date }}
+          FILES: ${{ steps.conflict.outputs.files }}
+        run: |
+          {
+            echo "## 上游同步冲突（Mangi-11/Eta → main）"
+            echo
+            echo "自动合并 \`upstream/main\` 时发生冲突，已执行 \`git merge --abort\`，**未推送任何合并结果**。"
+            echo
+            echo "### 冲突文件（${{ steps.conflict.outputs.count }} 个）"
+            echo '```'
+            printf '%s\n' "$FILES"
+            echo '```'
+            echo
+            echo "### 冲突原因"
+            echo "上游改动与 Eta-Refined 重构修改了同一文件的相同区域（UI/主题、引导、文档、构建配置等）。"
+            echo
+            echo "### 处理要求"
+            echo "- 人工 merge \`upstream/main\`，**逐文件保留重构改动**，禁止 \`-X ours\`/\`-X theirs\` 或整文件静默覆盖。"
+            echo "- 解决后运行 \`./gradlew :app:testDebugUnitTest :app:assembleDebug\` 验证可编译。"
+            echo "- 保留区清单见 \`.github/workflows/sync-upstream.yml\` 顶部注释。"
+            echo
+            echo "另有一个 \`[CONFLICT]\` 标记的 PR 记录冲突信息，供人工跟进。"
+          } > "$RUNNER_TEMP/conflict-issue.md"
+
+          gh issue create \
+            --title "chore(sync): 上游 Mangi-11/Eta 同步冲突 $DATE" \
+            --body-file "$RUNNER_TEMP/conflict-issue.md" \
+            --label upstream-sync \
+            --label conflict
+
+      - name: 推送冲突说明分支并创建 [CONFLICT] PR
+        if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'true'
+        env:
+          BRANCH: ${{ steps.vars.outputs.branch }}
+          DATE: ${{ steps.vars.outputs.date }}
+          FILES: ${{ steps.conflict.outputs.files }}
+        run: |
+          conflict_branch="${BRANCH}-conflict"
+          git branch -D "$conflict_branch" >/dev/null 2>&1 || true
+          git push origin --delete "$conflict_branch" >/dev/null 2>&1 || true
+          git switch -c "$conflict_branch"
+
+          {
+            echo "# ⚠️ 上游同步冲突（$DATE）"
+            echo
+            echo "自动合并 \`Mangi-11/Eta\` 的 \`main\` 时发生冲突，已中止合并。"
+            echo "本分支只记录冲突信息与操作指引，真实合并请在本地解决后再推送。"
+            echo
+            echo "## 冲突文件"
+            echo '```'
+            printf '%s\n' "$FILES"
+            echo '```'
+            echo
+            echo "## 解决步骤"
+            echo '```bash'
+            echo 'git fetch upstream main'
+            echo 'git switch -c sync/upstream-<date>'
+            echo 'git merge upstream/main   # 手工解决冲突，保留重构改动'
+            echo './gradlew :app:testDebugUnitTest :app:assembleDebug'
+            echo '```'
+            echo
+            echo "> 保留区清单见 \`.github/workflows/sync-upstream.yml\` 顶部注释。"
+          } > UPSTREAM_SYNC_CONFLICT.md
+
+          git add UPSTREAM_SYNC_CONFLICT.md
+          git commit -m "chore(sync): 记录上游同步冲突 $DATE"
+          git push --set-upstream origin "$conflict_branch"
+
+          gh pr create \
+            --base main \
+            --head "$conflict_branch" \
+            --title "[CONFLICT] chore(sync): 上游 Mangi-11/Eta 同步冲突 $DATE" \
+            --body-file UPSTREAM_SYNC_CONFLICT.md \
+            --label upstream-sync \
+            --label conflict \
+            || echo "::warning::[CONFLICT] PR 创建失败（可能已存在）。"
