@@ -8,6 +8,8 @@
  */
 package io.github.mangi.eta.ui.onboarding
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.mangi.eta.ui.theme2.MistMotion
+import io.github.mangi.eta.ui.theme2.MistShapes
 import io.github.mangi.eta.ui.theme2.MistSpace
 import io.github.mangi.eta.ui.theme2.MistType
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -101,6 +104,12 @@ fun MistOnboardingScreen(
     val colors = MiuixTheme.colorScheme
     val isLast = index == steps.lastIndex
 
+    // 进度条：使用 Mist Glass 动效令牌，切换步骤时给出即时视觉反馈。
+    val progress by animateFloatAsState(
+        targetValue = (index + 1f) / steps.size,
+        animationSpec = tween(durationMillis = MistMotion.standardMs, easing = MistMotion.std),
+    )
+
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = MistSpace.xxl, vertical = MistSpace.xxxl),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -145,6 +154,22 @@ fun MistOnboardingScreen(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(MistSpace.lg)) {
+            // 细线进度条：层次靠细线与材质，不使用阴影。
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(MistSpace.xxs)
+                    .clip(MistShapes.xs)
+                    .background(colors.outline.copy(alpha = 0.35f)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(progress)
+                        .height(MistSpace.xxs)
+                        .clip(MistShapes.xs)
+                        .background(colors.primary),
+                )
+            }
             // 进度点
             Row(horizontalArrangement = Arrangement.spacedBy(MistSpace.sm)) {
                 steps.indices.forEach { i ->
@@ -176,12 +201,10 @@ fun MistOnboardingScreen(
                     colors = ButtonDefaults.textButtonColorsPrimary(color = colors.primary),
                 )
             }
-            onSkip?.let {
-                Text(
+            onSkip?.let { skip ->
+                TextButton(
                     text = "跳过，使用默认配置",
-                    style = MistType.labelMedium,
-                    color = colors.onSurfaceVariantSummary,
-                    textAlign = TextAlign.Center,
+                    onClick = skip,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

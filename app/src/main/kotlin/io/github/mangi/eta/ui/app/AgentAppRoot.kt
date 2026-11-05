@@ -124,6 +124,9 @@ fun AgentAppRoot(
     onTerminalOpened: () -> Unit = {},
     onSpeechSettingsOpened: () -> Unit = {},
     onAssistantConversationOpened: (Boolean) -> Unit = {},
+    /** 首启向导里点击「去配置 / 去调整 / 去授权」后要直达的页面；消费后由 [onOnboardingRouteOpened] 清空。 */
+    requestedOnboardingRoute: AppRoute? = null,
+    onOnboardingRouteOpened: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -140,6 +143,12 @@ fun AgentAppRoot(
             if (backStack.lastOrNull() != AppRoute.Terminal) backStack.add(AppRoute.Terminal)
             onTerminalOpened()
         }
+    }
+    // 首启向导的「去配置 / 去调整 / 去授权」：关闭向导后把目标页压入导航栈。
+    LaunchedEffect(requestedOnboardingRoute) {
+        val route = requestedOnboardingRoute ?: return@LaunchedEffect
+        if (backStack.lastOrNull() != route) backStack.add(route)
+        onOnboardingRouteOpened()
     }
     val navigator = remember(backStack) { AgentNavigator(backStack) }
     var navigationResetKey by rememberSaveable { mutableIntStateOf(0) }

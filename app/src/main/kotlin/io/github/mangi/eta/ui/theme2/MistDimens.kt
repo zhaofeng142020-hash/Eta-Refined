@@ -9,7 +9,6 @@ package io.github.mangi.eta.ui.theme2
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
@@ -66,7 +65,6 @@ object MistMotion {
     val exit: Easing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
     val glide: Easing = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
     val sheetRise: Easing = CubicBezierEasing(0.2f, 0.9f, 0.25f, 1f)
-    val linear: Easing = FastOutSlowInEasing
 
     /** 按压缩放比例。 */
     const val pressScale = 0.97f
@@ -77,25 +75,27 @@ object MistMotion {
 }
 
 /**
- * 玻璃材质四档。chrome / sheet 使用真模糊，card / pill 仅半透明白（性能友好）。
- * 由 `MistGlassSurface` 组件消费；低端机可据性能策略关闭模糊、回退不透明面色。
+ * 玻璃材质四档。
+ *
+ * 说明：Compose 没有与 Flutter BackdropFilter 等价的「只模糊背景、不模糊内容」的简单
+ * Modifier（`Modifier.blur` 会连同内容一起模糊）。因此 Eta-Refined 用「半透明填充 +
+ * 发丝描边 + 零 elevation」近似玻璃观感，由 `MistGlassSurface` 消费下面两个透明度。
+ * 不声明无法兑现的模糊半径，避免令牌与实现不一致。
  */
 enum class MistGlassTier(
-    /** 填充透明度（0–1）。 */
+    /** 填充透明度（0–1），按浅色 / 深色分别取值。 */
     val fillAlphaLight: Float,
     val fillAlphaDark: Float,
-    /** 模糊半径（dp），0 表示不模糊。 */
-    val blurRadiusDp: Int,
 ) {
     /** 顶栏 / 输入条 / 底栏：浮在滚动内容之上。 */
-    chrome(fillAlphaLight = 0.70f, fillAlphaDark = 0.72f, blurRadiusDp = 18),
+    chrome(fillAlphaLight = 0.70f, fillAlphaDark = 0.72f),
 
     /** 底部弹层 / 菜单 / 抽屉。 */
-    sheet(fillAlphaLight = 0.82f, fillAlphaDark = 0.86f, blurRadiusDp = 24),
+    sheet(fillAlphaLight = 0.82f, fillAlphaDark = 0.86f),
 
-    /** 设置卡 / 审批卡：静态背景，不上模糊。 */
-    card(fillAlphaLight = 0.62f, fillAlphaDark = 0.05f, blurRadiusDp = 0),
+    /** 设置卡 / 审批卡：静态背景。 */
+    card(fillAlphaLight = 0.62f, fillAlphaDark = 0.05f),
 
     /** 胶囊 / chip：滚动列表小件。 */
-    pill(fillAlphaLight = 0.55f, fillAlphaDark = 0.06f, blurRadiusDp = 0),
+    pill(fillAlphaLight = 0.55f, fillAlphaDark = 0.06f),
 }

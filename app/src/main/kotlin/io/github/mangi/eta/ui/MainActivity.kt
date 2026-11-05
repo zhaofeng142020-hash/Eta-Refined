@@ -11,7 +11,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mangi.eta.agent.runtime.AgentRuntimeService
@@ -23,6 +25,9 @@ import io.github.mangi.eta.ui.app.AgentAppRoot
 import io.github.mangi.eta.ui.app.AgentAppTheme
 import io.github.mangi.eta.ui.app.PredictiveBackController
 import io.github.mangi.eta.ui.app.installStartupSplash
+import io.github.mangi.eta.ui.navigation.AppRoute
+import io.github.mangi.eta.ui.onboarding.MistOnboardingScreen
+import io.github.mangi.eta.ui.onboarding.OnboardingState
 import java.util.Collections
 import java.util.IdentityHashMap
 import kotlinx.coroutines.launch
@@ -42,8 +47,15 @@ class MainActivity : ComponentActivity() {
             val initialAppearance = AppearanceSettingsRepository.settings()
             appliedPredictiveBackEnabled = initialAppearance.predictiveBackEnabled
             setContent {
+                val context = LocalContext.current
                 val appearance by AppearanceSettingsRepository.settingsFlow()
                     .collectAsState(initial = initialAppearance)
+                // 首启向导：全新安装（或从 v3.4.0 升级）时显示，完成后持久化标记。
+                var showOnboarding by remember {
+                    mutableStateOf(!OnboardingState.isCompleted(context))
+                }
+                // 向导中点击「去配置 / 去调整 / 去授权」时，先关闭向导再让 AgentAppRoot 导航到目标页。
+                var pendingOnboardingRoute by remember { mutableStateOf<AppRoute?>(null) }
 
                 LaunchedEffect(appearance.themeMode) {
                     updateApplicationNightMode(appearance.themeMode)
@@ -64,41 +76,71 @@ class MainActivity : ComponentActivity() {
                     applyInterfaceScale = true,
                     onResolvedDarkModeChange = ::updateSystemBars,
                 ) {
-                    AgentAppRoot(
-                        assistantConversationKey = launchRequests.assistantConversationKey,
-                        requestedConversationId = launchRequests.conversationId,
-                        onRequestedConversationOpened = {
+                    if (showOnboarding) {
+                        MistOnboardingScreen(
+                            onFinish = {
+                                OnboardingState.markCompleted(context)
+                                showOnboarding = false
+                            },
+                            onSkip = {
+                                OnboardingState.markCompleted(context)
+                                showOnboarding = false
+                            },
+                            onOpenProviderSettings = {
+                                OnboardingState.markCompleted(context)
+                                showOnboarding = false
+                                pendingOnboardingRoute = AppRoute.ModelProviders
+                            },
+                            onOpenAppearanceSettings = {
+                                OnboardingState.markCompleted(context)
+                                showOnboarding = false
+                                pendingOnboardingRoute = AppRoute.AppearanceSettings
+                            },
+                            onRequestPermissions = {
+                                OnboardingState.markCompleted(context)
+                                showOnboarding = false
+                                pendingOnboardingRoute = AppRoute.Permissions
+                            },
+                        )
+                    } else {
+                        AgentAppRoot(
+                            assistantConversationKey = launchRequests.assistantConversationKey,
+                            requestedConversationId = launchRequests.conversationId,
+                            onRequestedConversationOpened = {
                             launchRequests = launchRequests.copy(conversationId = null)
                             intent?.action = null
-                        },
-                        requestedArchivedConversation = launchRequests.archivedConversation,
-                        onArchivedConversationOpened = {
+                            },
+                            requestedArchivedConversation = launchRequests.archivedConversation,
+                            onArchivedConversationOpened = {
                             launchRequests = launchRequests.copy(archivedConversation = null)
                             intent?.action = null
-                        },
-                        sharedContent = launchRequests.sharedContent,
-                        onSharedContentAccepted = {
+                            },
+                            sharedContent = launchRequests.sharedContent,
+                            onSharedContentAccepted = {
                             launchRequests = launchRequests.copy(sharedContent = null)
                             intent?.action = null
-                        },
-                        openSpeechSettings = launchRequests.speechSettings,
-                        openTerminal = launchRequests.terminal,
-                        onTerminalOpened = {
+                            },
+                            openSpeechSettings = launchRequests.speechSettings,
+                            openTerminal = launchRequests.terminal,
+                            onTerminalOpened = {
                             launchRequests = launchRequests.copy(terminal = false)
                             intent?.action = null
-                        },
-                        onSpeechSettingsOpened = {
+                            },
+                            onSpeechSettingsOpened = {
                             launchRequests = launchRequests.copy(speechSettings = false)
                             intent?.action = null
-                        },
-                        onAssistantConversationOpened = { opened ->
+                            },
+                            onAssistantConversationOpened = { opened ->
                             launchRequests = launchRequests.copy(assistantConversationKey = null)
                             intent?.action = null
                             if (opened) {
                                 EtaAssistantOverlayService.notifyHandoffReady(this@MainActivity)
                             }
-                        },
-                    )
+                            },
+                            requestedOnboardingRoute = pendingOnboardingRoute,
+                            onOnboardingRouteOpened = { pendingOnboardingRoute = null },
+                        )
+                    }
                 }
             }
             contentReady = true

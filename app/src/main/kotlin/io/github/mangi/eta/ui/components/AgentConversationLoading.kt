@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.ui.model.ConversationHistoryLoadState
+import io.github.mangi.eta.ui.theme2.MistSpace
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -39,10 +40,14 @@ internal fun AgentConversationLoadState(
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             } else {
-                Text(text = stringResource(R.string.conversation_load_failed))
-                TextButton(
-                    text = stringResource(R.string.action_retry),
-                    onClick = onRetry,
+                // 统一错误卡：说明发生了什么、给出可操作的修复建议与重试入口。
+                MistErrorCard(
+                    title = stringResource(R.string.conversation_load_failed),
+                    message = "会话记录未能读取，可能是存储权限受限或本地数据暂时不可用。",
+                    fixHint = "检查应用存储权限后重试，或重启应用再试。",
+                    onRetry = onRetry,
+                    retryLabel = stringResource(R.string.action_retry),
+                    modifier = Modifier.padding(horizontal = MistSpace.lg),
                 )
             }
         }
