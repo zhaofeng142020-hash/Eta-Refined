@@ -20,11 +20,11 @@ Eta 是为手机和移动设备设计的 AI Agent，结合了 [Codex](https://op
 
 支持 **Android 13 及以上版本的 ARM64 设备**，App 本体不限手机品牌，基础功能无需 Root。Root 和 LSPosed 可进一步开放深层个人上下文、一方应用接口与系统助手入口，具体能力取决于授权和 ROM 适配。
 
-[下载 APK](https://github.com/Mangi-11/Eta/releases) · [快速开始](#快速开始) · [重构说明](#重构说明与差异) · [常见问题](docs/FAQ.md)
+[下载 APK](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) · [快速开始](#快速开始) · [重构说明](#重构说明与差异) · [常见问题](docs/FAQ.md)
 
 ## 快速开始
 
-1. **下载**：前往 [Releases](https://github.com/Mangi-11/Eta/releases) 下载 `Eta-Refined` 的 APK。
+1. **下载**：前往 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 下载 `Eta-Refined` 的 APK。
 2. **安装**：在 Android 13+ ARM64 设备上安装 APK（首次安装建议允许来源安装）。
 3. **配置并对话**：首次启动进入**配置向导**，填写模型 **API Key**（或登录 **Codex / Grok** 订阅账号）并选择默认模型，即可开始对话。
 
