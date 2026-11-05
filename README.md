@@ -1,6 +1,6 @@
 <h1 align="center">Eta-Refined</h1>
 
-<p align="center"><strong>简体中文</strong> | <a href="README_EN.md">English（上游原版）</a></p>
+<p align="center"><strong>简体中文</strong> | <a href="README_EN.md">English</a></p>
 
 <p align="center"><strong>基于 Mangi-11/Eta 重构界面与体验的 Android 系统级 AI 助手</strong></p>
 
@@ -26,7 +26,7 @@ Eta 是为手机和移动设备设计的 AI Agent，结合了 [Codex](https://op
 
 1. **下载**：前往 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 下载 `Eta-Refined` 的 APK。
 2. **安装**：在 Android 13+ ARM64 设备上安装 APK（首次安装建议允许来源安装）。
-3. **配置并对话**：首次启动进入**配置向导**，填写模型 **API Key**（或登录 **Codex / Grok** 订阅账号）并选择默认模型，即可开始对话。
+3. **配置并对话**：首次启动进入**配置向导**，按引导前往「模型提供商」填写 **API Key**（或登录 **Codex / Grok** 订阅账号）并选择默认模型，即可开始对话；也可跳过向导，稍后在「设置 → 模型提供商」中配置。
 
 > 执行任务需要模型支持 **Tool Calling**，理解图片还需要模型支持图片输入。没有配置模型前，聊天与系统助手入口无法工作。
 
@@ -89,9 +89,9 @@ Eta 自身实现了完整的 Android 原生数字助理服务（`VoiceInteractio
 
 Eta-Refined 与原版 Eta 的差异集中在**视觉与交互层**，不改动业务逻辑与系统适配：
 
-- **Mist Glass 设计令牌层（自研）**：在 Kotlin + Jetpack Compose 技术栈内，用 Compose 自研的 Mist Glass 令牌层替换原有 Miuix 视觉皮肤，统一颜色、圆角、间距、字号与动效，形成可复用、可测试的设计系统。
-- **首启配置向导**：新增首次启动引导流程，把“模型选择 → API Key / Codex / Grok 登录 → 权限说明”收敛到一条可完成的路径，降低上手门槛。
-- **统一错误提示**：把分散的错误提示收敛为一致的展示层级与文案规范，网络、鉴权、权限与工具执行失败给出可操作指引。
+- **Mist Glass 设计令牌层（自研）**：在 Kotlin + Jetpack Compose 技术栈内引入统一的设计令牌层，**颜色令牌已全面生效**并替换 Miuix 默认调色板；圆角 / 间距 / 字号 / 动效已在聊天输入条、工具标签、空状态、错误卡与首启向导等部分界面落地，其余界面分批迁移中，形成可复用、可测试的设计系统。
+- **首启配置向导**：新增首次启动引导流程并**已接入启动路径**（首次启动标记 + 条件渲染 + 模型 / 外观 / 权限三步「去配置」直达 + 可点击「跳过」），把“模型选择 → API Key / Codex / Grok 登录 → 权限说明”收敛到一条可完成的路径，降低上手门槛。
+- **统一错误提示（逐步迁移）**：已引入统一错误卡（标题 + 修复建议 + 重试）并接入会话加载失败场景；其余约 20+ 处 Toast 尚未收敛，逐步迁移中。
 - **文档重构**：重写 README、补充 FAQ、重构说明与上游同步说明，面向用户与协作者分层组织。
 - **工程化**：保留原构建体系，新增设计密码、发布与同步工作流的说明文档。
 
@@ -142,17 +142,17 @@ Eta-Refined 的功能更新跟随上游 **[Mangi-11/Eta](https://github.com/Mang
 ## Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/#Mangi-11/Eta&amp;Date">
+  <a href="https://www.star-history.com/#zhaofeng142020-hash/Eta-Refined&amp;Date">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Mangi-11/Eta&amp;type=Date&amp;theme=dark">
-      <img src="https://api.star-history.com/svg?repos=Mangi-11/Eta&amp;type=Date" alt="Eta Star History" width="800">
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=zhaofeng142020-hash/Eta-Refined&amp;type=Date&amp;theme=dark">
+      <img src="https://api.star-history.com/svg?repos=zhaofeng142020-hash/Eta-Refined&amp;type=Date" alt="Eta-Refined Star History" width="800">
     </picture>
   </a>
 </p>
 
 ## 许可证
 
-Eta-Refined 与原版 Eta 一样，采用 **[PolyForm Noncommercial License 1.0.0](LICENSE)**。未经[原作者](https://github.com/Mangi-11)书面授权，禁止个人二次分发、贩卖、收费代装及其他商业使用。
+Eta-Refined 与原版 Eta 一样，采用 **[PolyForm Noncommercial License 1.0.0](LICENSE)**。该许可证允许为**非商业目的**复制、分发本软件（含修改版与派生作品），但必须随附许可证文本或链接，以及 LICENSE 中列出的 `Required Notice` 版权声明。任何商业使用（贩卖、收费代装、商业集成等）不在授权范围内，需另行获得[原作者](https://github.com/Mangi-11)授权。完整条款以 [LICENSE](LICENSE) 为准。
 
 原始版权归原作者所有：
 

@@ -107,35 +107,35 @@ class MainActivity : ComponentActivity() {
                             assistantConversationKey = launchRequests.assistantConversationKey,
                             requestedConversationId = launchRequests.conversationId,
                             onRequestedConversationOpened = {
-                            launchRequests = launchRequests.copy(conversationId = null)
-                            intent?.action = null
+                                launchRequests = launchRequests.copy(conversationId = null)
+                                intent?.action = null
                             },
                             requestedArchivedConversation = launchRequests.archivedConversation,
                             onArchivedConversationOpened = {
-                            launchRequests = launchRequests.copy(archivedConversation = null)
-                            intent?.action = null
+                                launchRequests = launchRequests.copy(archivedConversation = null)
+                                intent?.action = null
                             },
                             sharedContent = launchRequests.sharedContent,
                             onSharedContentAccepted = {
-                            launchRequests = launchRequests.copy(sharedContent = null)
-                            intent?.action = null
+                                launchRequests = launchRequests.copy(sharedContent = null)
+                                intent?.action = null
                             },
                             openSpeechSettings = launchRequests.speechSettings,
                             openTerminal = launchRequests.terminal,
                             onTerminalOpened = {
-                            launchRequests = launchRequests.copy(terminal = false)
-                            intent?.action = null
+                                launchRequests = launchRequests.copy(terminal = false)
+                                intent?.action = null
                             },
                             onSpeechSettingsOpened = {
-                            launchRequests = launchRequests.copy(speechSettings = false)
-                            intent?.action = null
+                                launchRequests = launchRequests.copy(speechSettings = false)
+                                intent?.action = null
                             },
                             onAssistantConversationOpened = { opened ->
-                            launchRequests = launchRequests.copy(assistantConversationKey = null)
-                            intent?.action = null
-                            if (opened) {
-                                EtaAssistantOverlayService.notifyHandoffReady(this@MainActivity)
-                            }
+                                launchRequests = launchRequests.copy(assistantConversationKey = null)
+                                intent?.action = null
+                                if (opened) {
+                                    EtaAssistantOverlayService.notifyHandoffReady(this@MainActivity)
+                                }
                             },
                             requestedOnboardingRoute = pendingOnboardingRoute,
                             onOnboardingRouteOpened = { pendingOnboardingRoute = null },

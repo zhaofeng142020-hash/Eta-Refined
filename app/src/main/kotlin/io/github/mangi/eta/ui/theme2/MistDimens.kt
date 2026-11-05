@@ -39,11 +39,18 @@ object MistSpace {
  * `RoundedCornerShape(percent = …)` 或自定义 Shape 逼近。
  */
 object MistShapes {
-    val xs = RoundedCornerShape(6.dp)     // 行内代码、角标、进度端点
-    val sm = RoundedCornerShape(10.dp)    // Chip、小按钮、菜单高亮
-    val md = RoundedCornerShape(14.dp)    // 卡片、代码井、输入框、主按钮
-    val lg = RoundedCornerShape(20.dp)    // 用户气泡、审批卡、设置分组卡
-    val xl = RoundedCornerShape(28.dp)    // composer 输入条、底部弹层、对话框
+    /** 各档半径的 Dp 值，供需要 Dp 参数的组件（如 squircleSurface）直接消费。 */
+    val xsRadius = 6.dp
+    val smRadius = 10.dp
+    val mdRadius = 14.dp
+    val lgRadius = 20.dp
+    val xlRadius = 28.dp
+
+    val xs = RoundedCornerShape(xsRadius)     // 行内代码、角标、进度端点
+    val sm = RoundedCornerShape(smRadius)    // Chip、小按钮、菜单高亮
+    val md = RoundedCornerShape(mdRadius)    // 卡片、代码井、输入框、主按钮
+    val lg = RoundedCornerShape(lgRadius)    // 用户气泡、审批卡、设置分组卡
+    val xl = RoundedCornerShape(xlRadius)    // composer 输入条、底部弹层、对话框
     val pill = RoundedCornerShape(percent = 50) // 顶栏胶囊、模型胶囊、发送键
 }
 

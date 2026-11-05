@@ -9,7 +9,6 @@ package io.github.mangi.eta.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import io.github.mangi.eta.ui.theme2.LocalMistIsDark
 import io.github.mangi.eta.ui.theme2.MistGlassTier
 import io.github.mangi.eta.ui.theme2.MistShapes
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -42,7 +42,8 @@ internal fun MistGlassSurface(
     shape: Shape = tier.defaultShape(),
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
+    // 使用应用解析后的明暗档位，而不是系统主题：强制浅色 + 系统深色时不能取错透明度。
+    val dark = LocalMistIsDark.current
     val colors = MiuixTheme.colorScheme
     val fillAlpha = if (dark) tier.fillAlphaDark else tier.fillAlphaLight
     val fill = colors.surface.copy(alpha = fillAlpha)

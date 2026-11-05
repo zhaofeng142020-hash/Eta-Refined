@@ -308,12 +308,12 @@ internal fun AgentChatInputBar(
                     )
                     .squircleSurface(
                         color = MiuixTheme.colorScheme.surfaceContainer,
-                        cornerRadius = 20.dp,
+                        cornerRadius = MistShapes.xlRadius,
                     )
                     .squircleBorder(
                         width = 0.5.dp,
                         color = MiuixTheme.colorScheme.outline.copy(alpha = 0.55f),
-                        cornerRadius = 20.dp,
+                        cornerRadius = MistShapes.xlRadius,
                     )
                     .padding(horizontal = 10.dp, vertical = 8.dp),
             ) {

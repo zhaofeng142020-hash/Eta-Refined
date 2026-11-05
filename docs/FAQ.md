@@ -27,9 +27,18 @@ Eta-Refined 与原版 Eta、以及不同构建渠道的 APK 可能使用**不同
 
 ### Q3：如何升级到新版本？
 
-- 从 [Releases](https://github.com/Mangi-11/Eta/releases) 下载新的 Eta-Refined APK，直接覆盖安装即可（**相同签名**时保留数据）。
+- 从 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 下载新的 Eta-Refined APK，直接覆盖安装即可（**相同签名**时保留数据）。
 - 若新版本更换了签名，会触发 Q2 的签名冲突，此时需先备份、卸载、再安装并恢复。
 - 升级前建议先导出备份，以防异常。
+
+### 签名差异与数据说明（从原版切换前必读）
+
+Eta-Refined 使用**新建的发布证书**，与原版 Eta 的签名证书**不同**；但两者的 `applicationId`（`io.github.mangi.eta`）与 `versionName`（如 `3.4.0`）**相同**。因此：
+
+- **无法覆盖安装**：Android 会因签名不一致拒绝覆盖（见 Q2），必须**先卸载、再安装**，不能直接升级。
+- **从原版切到本仓库会清空本地数据**：卸载会清除应用本地数据（对话、模型配置、记忆、角色等）。请务必先在原版中导出备份，安装 Eta-Refined 后再导入恢复；系统级授权（无障碍、通知使用权、LSPosed 作用域等）通常也需重新授予（见 Q14）。
+- **本仓库内部升级不受影响**：从本仓库旧版本升级到本仓库新版本，只要签名一致即可直接覆盖安装并保留数据（见 Q3）。
+- **避免版本混淆**：由于 `versionName` 与原版一致，第三方市场或更新检查可能把两者误判为同一应用；请始终以本仓库 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 作为下载来源。
 
 ## 模型与 API Key
 
