@@ -49,4 +49,4 @@ jobs:
             app/build/test-results/
           if-no-files-found: ignore
           retention-days: 7
-# touch: 触发 GitHub 重新索引工作流 2026-11-05T20:29Z
+# touch 2026-11-05T12:31:42Z reindex
