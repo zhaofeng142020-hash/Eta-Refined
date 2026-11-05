@@ -22,7 +22,12 @@
 #
 # 权限：contents / pull-requests / issues 写权限，使用内置 secrets.GITHUB_TOKEN。
 # 注意：由 GITHUB_TOKEN 创建的分支/PR 默认不会再触发其它工作流（防递归），
-#       因此 PR 上的 PR Check 可能需要维护者手动 re-run 后才会出现。
+#       因此 PR 上的 PR Check 通常不会自动触发。本工作流显式补救（不引入 PAT，仓库没有）：
+#       ① 合并后已在本工作流跑过 lintDebug + testDebugUnitTest + assembleDebug，把该结果写入 PR 正文
+#          作为「合并前已验证」凭据，并明确声明合并前必须满足的清单（含手动 re-run）；
+#       ② 无冲突分支推送开 PR 后，用 gh run list / gh pr checks 主动查看并等待 PR Check；
+#          若未自动触发，则追加 PR comment 明确提示维护者手动 re-run；
+#       ③ 保持「不自动合并」「冲突不静默覆盖」不变。
 # =============================================================================
 
 name: Sync Upstream
@@ -145,13 +150,15 @@ jobs:
         id: build
         run: >-
           ./gradlew --no-daemon --no-configuration-cache --continue
-          :app:testDebugUnitTest :app:assembleDebug
+          :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
 
       - name: 推送同步分支并创建 PR
+        id: create_pr
         if: steps.merge.outputs.empty == 'false' && steps.merge.outputs.conflict == 'false' && steps.build.outcome == 'success'
         env:
           BRANCH: ${{ steps.vars.outputs.branch }}
           DATE: ${{ steps.vars.outputs.date }}
+          SYNC_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           git push --set-upstream origin "$BRANCH"
 
@@ -159,18 +166,40 @@ jobs:
             echo "## 上游同步（Mangi-11/Eta → main）"
             echo
             echo "自动从 \`Mangi-11/Eta\` 的 \`main\` 合并，未产生冲突。"
-            echo "**本 PR 不会自动合并**，请人工 review 并等待 CI 通过后再合并。"
+            echo "**本 PR 不会自动合并**，请人工 review，满足下方「合并前清单」后再合并。"
             echo
             echo "### 本次合入的上游提交"
             cat "$RUNNER_TEMP/new-commits.txt" || true
             echo
+            echo "### ✅ 合并前已验证（凭据）"
             echo
-            echo "### 合并后校验"
-            echo "- \`./gradlew :app:testDebugUnitTest\` 通过"
-            echo "- \`./gradlew :app:assembleDebug\` 通过"
+            echo "本同步工作流已在**创建本 PR 之前**、在合并后的同步分支上实际执行并通过："
             echo
-            echo "> 由 \`GITHUB_TOKEN\` 创建，PR Check 可能不会自动触发；合并前请手动 re-run 或确认 CI。"
-            echo "> 合并前请确认 UI/主题/引导/文档等重构改动未被上游覆盖（保留区清单见工作流顶部注释）。"
+            echo "- \`./gradlew :app:lintDebug\`（通过）"
+            echo "- \`./gradlew :app:testDebugUnitTest\`（通过）"
+            echo "- \`./gradlew :app:assembleDebug\`（通过）"
+            echo
+            echo "凭据：[本次同步工作流运行]($SYNC_RUN_URL)（job「同步上游 Mangi-11/Eta」→ 步骤「合并后构建校验」）。"
+            echo "> 这是合并前的构建凭据，**不能替代** PR 上 \`PR Check\`（\`Lint / Test / Debug Build\`）这一必需检查的状态。"
+            echo
+            echo "### ⚠️ 关于 PR Check（GITHUB_TOKEN 的已知限制）"
+            echo
+            echo "本 PR 由工作流用内置 \`GITHUB_TOKEN\` 创建，GitHub 默认**不会再为这类事件触发其它工作流**"
+            echo "（防止递归），因此 \`PR Check\` 很可能不会自动出现在本 PR 上。仓库未配置 PAT，故不改触发方式。"
+            echo
+            echo "- 若 PR 页面没有 \`PR Check\`：请维护者**手动 re-run** —— 在 Actions 页对 \`PR Check\`"
+            echo "  执行 \`Run workflow\`（分支选 \`$BRANCH\`），或用本人账号向该分支推一个空提交 /"
+            echo "  关闭再重新打开 PR 以产生 \`pull_request\` 事件；ruleset 的必需检查只认 PR 上的 \`pull_request\` 运行。"
+            echo "- 本工作流开 PR 后会主动用 \`gh run list\` / \`gh pr checks\` 核对，未触发时会在本 PR"
+            echo "  追加一条评论再次提示。"
+            echo
+            echo "### 合并前清单（必须全部满足）"
+            echo
+            echo "- [ ] \`PR Check\`（\`Lint / Test / Debug Build\`）已手动触发且**全部通过**（或已确认其结论）。"
+            echo "- [ ] 上方「合并前已验证」的 \`testDebugUnitTest\` + \`assembleDebug\` 结果仍有效（本 PR 未再引入新提交）。"
+            echo "- [ ] 人工 review：UI/主题/引导/文档等重构改动**未被上游覆盖**（保留区清单见工作流顶部注释）。"
+            echo "- [ ] 人工 review：无 \`-X ours\` / \`-X theirs\` 静默覆盖，冲突（若有）已逐文件人工解决。"
+            echo "- [ ] 由维护者显式合并（本流程绝不自动合并）。"
           } > "$RUNNER_TEMP/pr-body.md"
 
           gh pr create \
@@ -180,6 +209,81 @@ jobs:
             --body-file "$RUNNER_TEMP/pr-body.md" \
             --label upstream-sync \
             || echo "::warning::PR 创建失败（可能同分支 PR 已存在），请手动检查。"
+
+          # 解析 PR 编号（无论本次新建还是同分支已存在），供后续核对步骤使用
+          pr_number="$(gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" \
+            --json number --jq '.number' 2>/dev/null || true)"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: 主动核对 PR Check（GITHUB_TOKEN PR 补救）
+        id: check_pr
+        if: steps.create_pr.outputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
+          BRANCH: ${{ steps.vars.outputs.branch }}
+        run: |
+          # GITHUB_TOKEN 创建的 PR 往往不会自动触发 PR Check；给一个短暂窗口，
+          # 用 gh run list / gh pr checks 主动轮询，确认它到底有没有出现。
+          found="false"
+          for attempt in 1 2 3 4 5 6; do
+            runs="$(gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow "pr-check.yml" \
+                --branch "$BRANCH" \
+                --limit 5 \
+                --json databaseId \
+                --jq '.[].databaseId' 2>/dev/null || true)"
+            if [[ -n "$runs" ]]; then
+              found="true"
+              break
+            fi
+            checks="$(gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)"
+            if [[ "$checks" == *"Lint / Test / Debug Build"* ]]; then
+              found="true"
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "$found" == "true" ]]; then
+            echo "::notice::PR #$PR_NUMBER 上检测到 PR Check 工作流，当前状态："
+            gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" || true
+            echo "pr_check=detected" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::PR #$PR_NUMBER 未自动触发 PR Check（GITHUB_TOKEN 创建的 PR 的已知限制），将追加 PR 评论提示手动 re-run。"
+            echo "pr_check=missing" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 提示维护者手动 re-run PR Check
+        if: steps.check_pr.outputs.pr_check == 'missing'
+        env:
+          PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
+          BRANCH: ${{ steps.vars.outputs.branch }}
+          SYNC_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "### ⚠️ PR Check 未自动触发，请手动 re-run"
+            echo
+            echo "本同步工作流用 \`gh run list\` / \`gh pr checks\` 主动核对后，"
+            echo "确认本 PR 上**没有** \`PR Check\`（\`Lint / Test / Debug Build\`）运行。"
+            echo "原因：本 PR 由 \`GITHUB_TOKEN\` 创建，GitHub 默认不会为这类事件触发其它工作流；仓库未配置 PAT，故不自动改触发方式。"
+            echo
+            echo "合并前请维护者手动触发并确认通过："
+            echo '```bash'
+            echo "gh workflow run pr-check.yml --ref $BRANCH"
+            echo '```'
+            echo "或用本人账号向 \`$BRANCH\` 推一个空提交 / 关闭再重新打开 PR 以产生 \`pull_request\` 事件"
+            echo "（若 main 的 ruleset 把 \`Lint / Test / Debug Build\` 设为必需检查，它只认 PR 上的 \`pull_request\` 运行）。"
+            echo
+            echo "补充凭据：本同步工作流在创建 PR 前已在合并后的分支上通过 \`testDebugUnitTest\` + \`assembleDebug\`，"
+            echo "见 [本次同步工作流运行]($SYNC_RUN_URL) 与 PR 正文「合并前已验证」。这只是合并前的构建凭据，不能替代必需检查。"
+            echo
+            echo "> 本流程绝不自动合并；请按 PR 正文「合并前清单」逐项确认后再由维护者合并。"
+          } > "$RUNNER_TEMP/pr-check-comment.md"
+
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body-file "$RUNNER_TEMP/pr-check-comment.md" \
+            || echo "::warning::PR comment 创建失败，请在 PR 页面手动说明。"
 
       # ---------- 构建失败：建 Issue，不推送、不开合并 PR ----------
 

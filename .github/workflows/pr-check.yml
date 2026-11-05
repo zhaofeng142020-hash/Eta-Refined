@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   check:
-    # 名称会作为 main 分支规则集的必需检查，修改时同步更新仓库规则集
+    # 该 job 名称是 main 分支规则集（ruleset）将登记的必需检查名。
+    # 新建仓库当前没有任何 ruleset，lead 已/将通过 GitHub API 配置；
+    # 若修改下方 name（Lint / Test / Debug Build），必须同步更新规则集里的必需检查名。
     name: Lint / Test / Debug Build
     runs-on: ubuntu-latest
     timeout-minutes: 45

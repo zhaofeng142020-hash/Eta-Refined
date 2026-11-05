@@ -8,7 +8,6 @@
 package io.github.mangi.eta.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.ui.theme2.MistGlassTier
-import io.github.mangi.eta.ui.theme2.MistSemantic
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -49,9 +47,10 @@ internal fun MistErrorCard(
     onDismiss: (() -> Unit)? = null,
     dismissLabel: String = "知道了",
 ) {
-    val dark = isSystemInDarkTheme()
-    val danger = MistSemantic.dangerFor(dark)
+    // 使用当前 colorScheme 的 error / onError：自动适配应用强制明暗与 Monet 动态取色，
+    // 避免固定语义色与主题前景色混搭导致对比度不足。
     val colors = MiuixTheme.colorScheme
+    val danger = colors.error
     MistGlassSurface(tier = MistGlassTier.card, modifier = modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(16.dp)) {
             // 左侧警示竖条，替代图标以降低依赖。

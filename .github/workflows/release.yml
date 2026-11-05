@@ -4,12 +4,14 @@
 # 触发：
 #   * push tag `v*`     → 正式版（tag 名即版本，校验与 output-metadata.json 的
 #                         versionName 一致，使用 --verify-tag）
-#   * push main 分支    → 预发布 nightly：`v<versionName>-nightly.<shortsha>`（--prerelease）
-#   * workflow_dispatch → 同 main 逻辑（nightly）；可选输入 version 覆盖标签里的版本名
+#   * push main 分支    → 预发布 nightly：滚动更新固定 tag `nightly`（--prerelease），
+#                         且仅当代码/构建相关路径变更时触发（见下方 paths 过滤）
+#   * workflow_dispatch → 同 main 逻辑（nightly）；可选输入 version 覆盖标题/资产里的版本名
 #
 # 流程：
 #   checkout → 复用 ./.github/actions/setup-build 安装环境 →
-#   无条件跑单元测试（保证 main 首次推送在未配置 Secrets 时也至少测试通过、不红）→
+#   无条件跑 lint + 单元测试（--continue，保证 main 首次推送在未配置 Secrets 时
+#   也至少静态检查/测试通过、不红）→
 #   还原签名证书（缺 Secrets 时优雅降级：ready=false，跳过发布，任务仍成功）→
 #   仅当证书就绪时才 assembleRelease → apksigner 校验 → 整理 APK →
 #   gh release create 上传 Release APK 资产。
@@ -33,14 +35,28 @@ name: Release
 
 on:
   push:
+    # GitHub 语义说明：push 同时带 `tags` 与 `branches` 时二者是「或」关系；
+    # `paths` 只与 `branches` 联用（分支推送需同时满足 branches 与 paths）。
+    # 关键：路径过滤不作用于 tag 推送 —— 官方文档明确写明
+    #   "Path filters are not evaluated for pushes of tags."
+    # 因此本 paths 只收窄 main 分支的 nightly 触发；`v*` tag 推送不受影响、
+    # 仍照常发布正式版。文档、以及工作流自身（.github/workflows/**）的改动
+    # 不再触发 nightly；只有代码/构建相关路径变更才会。
     tags:
       - "v*"
     branches:
       - main
+    paths:
+      - "app/**"
+      - "build.gradle.kts"
+      - "gradle/**"
+      - "gradle.properties"
+      - "settings.gradle.kts"
+      - ".github/actions/setup-build/**"
   workflow_dispatch:
     inputs:
       version:
-        description: "可选：覆盖 nightly 标签中的版本名（例如 3.4.0，可省略前导 v）"
+        description: "可选：覆盖 nightly 标题/资产中的版本名（例如 3.4.0，可省略前导 v）"
         required: false
         type: string
 
@@ -48,7 +64,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  # 固定 group：所有发布运行（tag 正式版 / main nightly / 手动 nightly）串行执行，
+  # 保证 nightly 的「删除旧 tag → 重建」序列不会被另一个发布运行并发打断，
+  # 同一时刻只会存在一个 nightly Release（并发处理）。
+  group: release
   # 发布过程不中途取消，避免出现半上传的 Release
   cancel-in-progress: false
 
@@ -67,11 +86,14 @@ jobs:
       - name: 配置构建环境
         uses: ./.github/actions/setup-build
 
-      - name: 单元测试
-        # 无条件运行：即使尚未配置签名 Secrets，main / tag / 手动触发也至少保证测试通过、任务不红
+      - name: Lint 与单元测试
+        # 发布前静态检查守门：与 pr-check.yml 一致，同时跑 lintDebug + testDebugUnitTest；
+        # --continue 让两项都跑完再判定，lint 失败也不会掩盖测试结果。
+        # 无条件运行：即使尚未配置签名 Secrets，main / tag / 手动触发也至少保证
+        # 静态检查 / 测试通过、任务不红。
         run: >-
-          ./gradlew --no-daemon --no-configuration-cache
-          :app:testDebugUnitTest
+          ./gradlew --no-daemon --no-configuration-cache --continue
+          :app:lintDebug :app:testDebugUnitTest
 
       - name: 还原发布证书
         id: sign
@@ -87,7 +109,7 @@ jobs:
                 -z "$ETA_REFINED_KEY_ALIAS" ||
                 -z "$ETA_REFINED_KEY_PASSWORD" ]]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::未配置签名 Secrets，跳过发布（单元测试已完成，任务保持成功）。"
+            echo "::notice::未配置签名 Secrets，跳过发布（lint 与单元测试已完成，任务保持成功）。"
             exit 0
           fi
           printf '%s' "$ETA_REFINED_KEYSTORE_BASE64" \
@@ -144,26 +166,31 @@ jobs:
               exit 1
             fi
             tag="$GITHUB_REF_NAME"
+            title="$tag"
             prerelease="false"
+            asset="Eta-${tag}.apk"
           else
-            # nightly / 手动触发：v<versionName>-nightly.<shortsha>
+            # nightly / 手动触发：滚动更新单个固定 tag `nightly`，不再按 sha 堆积 tag。
+            # 标签固定；版本与短 sha 体现在 Release 标题与 APK 文件名中，便于追溯。
             base_version="$version_name"
             manual_version="${MANUAL_VERSION#v}"
             if [[ -n "$manual_version" ]]; then
               base_version="$manual_version"
             fi
-            tag="v${base_version}-nightly.${short_sha}"
+            tag="nightly"
+            title="Nightly v${base_version} (${short_sha})"
             prerelease="true"
+            asset="Eta-v${base_version}-nightly.${short_sha}.apk"
           fi
 
           mkdir -p dist
-          asset="Eta-${tag}.apk"
           cp "${release_apks[0]}" "dist/${asset}"
 
           {
             echo "tag=$tag"
             echo "version_name=$version_name"
             echo "prerelease=$prerelease"
+            echo "title=$title"
             echo "apk_path=dist/${asset}"
           } >> "$GITHUB_OUTPUT"
 
@@ -172,15 +199,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.apk.outputs.tag }}
+          TITLE: ${{ steps.apk.outputs.title }}
           PRERELEASE: ${{ steps.apk.outputs.prerelease }}
           APK_PATH: ${{ steps.apk.outputs.apk_path }}
         run: |
-          args=(--repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --target "$GITHUB_SHA")
+          set -euo pipefail
           if [[ "$PRERELEASE" == "true" ]]; then
-            # nightly：标签由 gh 依据 --target 创建，标记为预发布
-            args+=(--prerelease)
+            # 滚动 nightly：始终只保留一个 nightly Release / tag。
+            # 1) 先删除旧的 nightly Release 及其 tag（--cleanup-tag）再重建；
+            #    `|| true` 兼容首次运行（nightly 尚不存在，删除会报错）。
+            # 2) 并发：工作流级 concurrency（固定 group: release、cancel-in-progress:false）
+            #    把所有发布运行串行化，保证「删除 → 重建」序列不被其它发布运行打断。
+            # 3) --target 固定为当前提交 sha，使 nightly tag 指向本次构建。
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag -y || true
+            gh release create "$TAG" "$APK_PATH" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" \
+              --prerelease \
+              --generate-notes \
+              --target "$GITHUB_SHA"
           else
-            # 正式版：tag 已存在，强制校验
-            args+=(--verify-tag)
+            # 正式版：tag 已存在，强制校验（--verify-tag），逻辑保持不变
+            gh release create "$TAG" "$APK_PATH" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" \
+              --generate-notes \
+              --target "$GITHUB_SHA" \
+              --verify-tag
           fi
-          gh release create "$TAG" "$APK_PATH" "${args[@]}"

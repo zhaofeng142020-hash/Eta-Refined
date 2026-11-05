@@ -10,7 +10,7 @@
  * UI（361 处 MiuixTheme.colorScheme.* 调用）无需逐文件改动即可获得新的视觉语言。
  *
  * 接入点见 ui/app/AgentAppTheme.kt：当 RefinedUi.USE_MIST_GLASS 为真且用户未启用
- * Money 动态取色时，用本文件的 mistGlassColors() 覆盖 Miuix 默认色板。
+ * Monet 动态取色时，用本文件的 mistGlassColors() 覆盖 Miuix 默认色板。
  */
 package io.github.mangi.eta.ui.theme2
 
@@ -54,9 +54,9 @@ private object MistLight {
     val primaryContainer = Color(0xFFDCE6FA)
     val onPrimaryContainer = Color(0xFF1E232E)
     val secondary = Color(0xFFE6E6E6)
-    val error = Color(0xFFA54743)
+    val error = MistSemantic.danger
     val onError = Color(0xFFFFFFFF)
-    val errorContainer = Color(0xFFFFE2E0)
+    val errorContainer = MistSemantic.dangerContainer
     val onErrorContainer = Color(0xFF410002)
     val tertiaryContainer = Color(0xFFECE5FB)
     val onTertiaryContainer = Color(0xFF6B578F)
@@ -80,7 +80,7 @@ private object MistDark {
     val primaryContainer = Color(0xFF2A3550)
     val onPrimaryContainer = Color(0xFFDCE6FA)
     val secondary = Color(0xFF505050)
-    val error = Color(0xFFF2B8B5)
+    val error = MistSemantic.dangerFor(true)
     val onError = Color(0xFF601410)
     val errorContainer = Color(0xFF8C1D18)
     val onErrorContainer = Color(0xFFF9DEDC)

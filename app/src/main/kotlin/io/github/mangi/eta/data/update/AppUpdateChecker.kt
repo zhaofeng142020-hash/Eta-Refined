@@ -66,6 +66,8 @@ internal object AppUpdateChecker {
         .readTimeout(8, TimeUnit.SECONDS)
         .build()
 
-    private const val LATEST_RELEASE_URL = "https://api.github.com/repos/Mangi-11/Eta/releases/latest"
+    // Eta-Refined 使用独立签名证书与独立 Releases，必须检查本派生仓库，
+    // 否则会推荐签名不同、无法覆盖安装的上游原版 APK。
+    private const val LATEST_RELEASE_URL = "https://api.github.com/repos/zhaofeng142020-hash/Eta-Refined/releases/latest"
     private const val USER_AGENT = "Eta-Update-Checker"
 }

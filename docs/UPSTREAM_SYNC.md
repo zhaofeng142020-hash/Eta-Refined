@@ -41,12 +41,19 @@ Eta-Refined 是 [Mangi-11/Eta](https://github.com/Mangi-11/Eta) 的派生仓库�
 
 | 保留区路径 | 说明 |
 | --- | --- |
-| `app/src/main/kotlin/io/github/mangi/eta/ui/theme2/` | Mist Glass 设计令牌层 |
-| `app/src/main/kotlin/io/github/mangi/eta/ui/onboarding/` | 首启配置向导 |
-| `README.md` | 重构版说明文档 |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/theme2/` | Mist Glass 设计令牌层（纯新增，上游不会冲突） |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/onboarding/` | 首启配置向导与完成状态持久化（纯新增） |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/components/Mist*.kt` | 玻璃容器 / 错误卡 / 空状态组件 |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/components/ListEmptyState.kt`、`ToolChip.kt`、`AgentConversationLoading.kt`、`AgentChatInputBar.kt` | 已落地令牌/错误卡的既有组件，上游更新需人工合并 |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/MainActivity.kt`、`ui/app/AgentAppRoot.kt`、`ui/app/AgentAppTheme.kt` | 向导接线、目标路由、主题接入点 |
+| `data/update/AppUpdateChecker.kt`、`ui/SettingsScreen.kt` | 派生版身份适配（更新检查 / 关于页链接指向 Eta-Refined） |
+| `README.md`、`README_EN.md` | 重构版说明文档（含来源与许可证声明） |
 | `docs/` | 重构说明、同步说明、FAQ、归因等文档 |
+| `.github/workflows/`、`scripts/` | CI/CD（发布、上游同步、PR 检查）与开源引导脚本 |
 
 > `docs/` 下若包含上游原有文档（如 `TECHNICAL.md`、`AGENT_RUNTIME.md`），同步时按文件级判断：新增的重构文档优先保留，上游对既有技术文档的更新可正常吸收。
+>
+> **注意**：保留区清单只是人工裁决依据，`sync-upstream.yml` 的 `git merge` 不会自动跳过这些文件；当上游也修改了同一文件的不同区域时，非冲突 hunk 会被 Git 正常合入。合并 PR 前请逐文件核对重构改动仍在。
 
 ## 7. 执行清单（供维护者参考）
 

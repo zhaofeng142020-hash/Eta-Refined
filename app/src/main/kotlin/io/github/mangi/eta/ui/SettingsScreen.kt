@@ -842,7 +842,7 @@ private fun SettingsPageContent(
                                 tint = SettingsIconColors.Orange,
                             )
                         },
-                        onClick = { openUrl("https://github.com/Mangi-11/Eta/issues") },
+                        onClick = { openUrl("https://github.com/zhaofeng142020-hash/Eta-Refined/issues") },
                     )
                     ArrowPreference(
                         title = stringResource(R.string.ui_about_github_star_title),
@@ -853,7 +853,7 @@ private fun SettingsPageContent(
                                 tint = SettingsIconColors.Blue,
                             )
                         },
-                        onClick = { openUrl("https://github.com/Mangi-11/Eta") },
+                        onClick = { openUrl("https://github.com/zhaofeng142020-hash/Eta-Refined") },
                     )
                 }
             }

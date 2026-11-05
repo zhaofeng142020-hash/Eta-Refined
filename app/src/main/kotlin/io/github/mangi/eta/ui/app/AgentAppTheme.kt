@@ -12,6 +12,7 @@ import io.github.mangi.eta.data.model.AppearanceAccentColor
 import io.github.mangi.eta.data.model.AppearancePaletteStyle
 import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.model.AppearanceThemeMode
+import io.github.mangi.eta.ui.theme2.LocalMistIsDark
 import io.github.mangi.eta.ui.theme2.RefinedUi
 import io.github.mangi.eta.ui.theme2.mistGlassColors
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -111,6 +112,7 @@ fun AgentAppTheme(
                 LocalTopBarBlurStyle provides appearance.topBarBlurStyle,
                 LocalPlatformDensity provides platformDensity,
                 LocalDensity provides appDensity,
+                LocalMistIsDark provides isDark,
             ) {
                 content()
             }
