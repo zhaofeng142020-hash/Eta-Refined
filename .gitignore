@@ -24,8 +24,11 @@ output-metadata.json
 *.log
 *.jks
 *.keystore
+*.p12
 keystore.properties
 google-services.json
+# Eta-Refined 发布密钥生成目录（绝不入库）
+/secrets/
 
 # 本地配置和临时分析产物
 /local.properties

@@ -79,15 +79,15 @@ jobs:
 
       - name: 确保同步标签存在
         run: |
-          # --force 在标签已存在时更新其描述/颜色，不会重复创建
+          # 不存在则创建；已存在时 create 会报错，这里忽略（避免依赖 --force 的版本差异）
           gh label create upstream-sync \
             --color "0E8A16" \
             --description "上游 Mangi-11/Eta 同步相关" \
-            --force || true
+            >/dev/null 2>&1 || true
           gh label create conflict \
             --color "D93F0B" \
             --description "上游合并冲突，需人工处理" \
-            --force || true
+            >/dev/null 2>&1 || true
 
       - name: 添加上游并拉取 main
         run: |

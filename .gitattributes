@@ -1,0 +1,6 @@
+# 统一换行：源码按平台自动，脚本固定 LF/CRLF，避免 Linux CI 执行 gradlew 失败
+* text=auto
+*.sh        text eol=lf
+gradlew     text eol=lf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
