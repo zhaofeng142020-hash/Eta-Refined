@@ -81,6 +81,8 @@ import io.github.mangi.eta.ui.screens.mcp.McpServerDetailScreen
 import io.github.mangi.eta.ui.screens.mcp.McpServersScreen
 import io.github.mangi.eta.ui.screens.memory.AgentMemoryScreen
 import io.github.mangi.eta.ui.screens.permissions.PermissionHealthScreen
+import io.github.mangi.eta.ui.screens.remote.RemoteChatScreen
+import io.github.mangi.eta.ui.screens.remote.RemoteHostSettingsScreen
 import io.github.mangi.eta.ui.screens.skills.AgentSkillsScreen
 import io.github.mangi.eta.ui.screens.subagent.SubagentSettingsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxEnvironmentScreen
@@ -801,6 +803,18 @@ fun AgentAppRoot(
                 ModelProviderDetailScreen(
                     newType = route.providerType,
                     onBack = ::popRoute
+                )
+            }
+            entry<AppRoute.RemoteHosts>(swipeDismiss = swipeDismiss) {
+                RemoteHostSettingsScreen(
+                    onBack = ::popRoute,
+                    onOpenChat = { sessionId -> pushRoute(AppRoute.RemoteChat(sessionId)) },
+                )
+            }
+            entry<AppRoute.RemoteChat>(swipeDismiss = swipeDismiss) { route ->
+                RemoteChatScreen(
+                    sessionId = route.sessionId,
+                    onBack = ::popRoute,
                 )
             }
         }

@@ -20,7 +20,7 @@ Eta is an AI agent designed for phones and other mobile devices. It combines the
 
 Requires **Android 13 or later on ARM64 devices**. The app is not tied to any phone brand, and core features do not require root. Root and LSPosed unlock deeper personal context, first-party app interfaces, and system assistant entry points, subject to permissions and ROM compatibility.
 
-[Download APK](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) · [Quick start](#quick-start) · [What has changed](#what-has-changed) · [FAQ](docs/FAQ.md)
+[Download APK](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) · [Quick start](#quick-start) · [Remote host](#remote-host) · [What has changed](#what-has-changed) · [FAQ](docs/FAQ.md)
 
 ## Quick start
 
@@ -76,6 +76,19 @@ Eta's AI features work with your own model-provider **API Key (BYOK)** or **Code
 
 The built-in OpenAI and xAI providers switch between an API Key and subscription sign-in: Codex via PKCE, Grok via device code, both completed in the system browser. OAuth credentials are encrypted via Android Keystore in non-backed-up local storage and excluded from IPC and backups. The provider layer supports OpenAI-compatible Chat Completions, the Responses API, Anthropic Messages, and Gemini native Interactions API, including SSE streaming, tool calling, image input, and reasoning content.
 
+## Remote host
+
+> ⚠️ **Experimental · protocol implementation + configurability only · not field-tested**: this round delivers only the remote-host protocol layer, settings UI, and docs. **The feature is unavailable until the PC-side prerequisites are in place**; no Android device was available locally and the PC was not running `dsh web`, so **no real-device integration test was performed and we do not claim a working connection**. See [docs/REMOTE_HOST.md](docs/REMOTE_HOST.md).
+
+Eta-Refined can **keep the on-device Eta Agent and a remote host side by side and switch at any time** (with no remote host selected, the local Agent is used), routing sessions to the agent harness (DSH / `dsh web`) engine running on a PC or server. Two connection methods:
+
+- **Direct (Plan A)**: run `npm i -g @deepseek-ai/dsh` then `dsh web` on the PC, and paste the **token-bearing URL** it prints (e.g. `http://192.168.1.5:3080/?token=…`) into **Settings → Remote host → Direct host**.
+- **Relay**: install the `ds-harness-remote` Host plugin in the PC-side the agent harness and sign in; sign in on the phone with the **same account**, pick an online host from the list, and **verify the identity fingerprint on first connection**.
+
+> ⚠️ **Third-party hosted server notice**: Relay connects by default to a server hosted by a third party, **[ds-harness-remote](https://github.com/liguobao/ds-harness-remote)** (MIT): **`https://dsh.r2049.cn`**. It is **not** an Eta-Refined-owned service; it can be **disabled with one tap** or changed to a **self-hosted server address** in Settings → Remote host, and no credentials are uploaded silently by default. All credentials (launch token / Cookie / accessToken / refreshToken / X25519 private key) are **stored only in the on-device Android Keystore, never logged and never echoed back in full**.
+
+For setup steps, PC-side prerequisites, the error-code table, and the list of what is **not implemented**, see **[docs/REMOTE_HOST.md](docs/REMOTE_HOST.md)**; see [docs/FAQ.md](docs/FAQ.md) for common questions.
+
 ## Permissions and data boundaries
 
 System tools, sensitive reads, sensitive actions, terminal and file access, browsing, and memory each have independent switches, enabled by default. The runtime rechecks permissions before execution; revoking access or losing a connection does not overwrite saved settings.
@@ -120,12 +133,13 @@ Release workflow, signing configuration, and versioning rules are documented in 
 
 ## FAQ
 
-Installation failures, signature conflicts, API Key configuration, root / LSPosed permissions, upstream sync, upgrades, and rolling back to the original Eta are covered in **[docs/FAQ.md](docs/FAQ.md)**.
+Installation failures, signature conflicts, API Key configuration, root / LSPosed permissions, remote-host connections, upstream sync, upgrades, and rolling back to the original Eta are covered in **[docs/FAQ.md](docs/FAQ.md)**.
 
 ## Further reading
 
 Most of these implementation notes are currently written in Chinese:
 
+- [Remote host](docs/REMOTE_HOST.md): direct / Relay connections, PC-side prerequisites, third-party server notice, error codes, and what is not implemented (experimental, not field-tested).
 - [Refactoring notes and differences](docs/REFACTORING.md): technology choices, Mist Glass design tokens, directory changes, and risk control.
 - [Upstream sync notes](docs/UPSTREAM_SYNC.md): sync source, branch strategy, conflict handling, and reserved areas.
 - [FAQ](docs/FAQ.md): installation, configuration, permissions, upgrades, and rollback.

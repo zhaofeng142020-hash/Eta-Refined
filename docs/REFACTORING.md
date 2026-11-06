@@ -176,6 +176,7 @@ Mist Glass 是一套基于“雾面玻璃 + 柔和分层”的 Compose 设计令
   - 效果：配合独立签名证书，Eta-Refined **可与原版 Eta 同时安装、数据隔离、互不覆盖**；安装不会替换原版。已列入[保留区清单](UPSTREAM_SYNC.md#6-重构保留区清单)，上游同步时需人工保留。
   - 代价：LSPosed 按包名识别模块，需在 LSPosed 中启用新模块并重新勾选作用域；默认数字助理、无障碍服务等系统级授权需针对新包名重新选择；`v3.4.0-refined1` 及更早版本的用户升级时属于全新安装，数据需导出/导入迁移。详见 [FAQ.md](FAQ.md)。
 - **属于事实的部分**：来源声明、CI / 发布 / 上游同步机制（见 [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md)）、文档与许可证均按仓库现状如实描述。
+- **本轮新增：远程主机（协议实现 + 可配置，实验性）**：在不改动本机 Agent Runtime / 设备工具 / Hook 等既有业务逻辑的前提下，并列新增「远程主机」能力 —— `agent/remote/`、`data/remote/` 的协议与存储层，`ui/screens/remote/` 的设置页 / 主机切换胶囊 / 远程会话页，以及 `ui/navigation/AppRoute.kt`、`ui/app/AgentAppRoot.kt`、`ui/SettingsScreen.kt` 的**追加式**接线与三套 `values*/strings.xml` 文案；文档新增 [REMOTE_HOST.md](REMOTE_HOST.md) 并同步 README / FAQ / 上游同步保留区清单。其中 `agent/`、`data/` 下的新目录为**并列新增**，第 3 节「未改动」结论针对既有文件，二者不矛盾。本机 Eta Agent 与远程主机**并存、可切换**（未选远程主机时仍用本机 Agent）；两种连接方式为直连 `dsh web` HTTP 与 Relay（默认第三方托管 Server `https://dsh.r2049.cn`，可关闭或改自建地址）。**本轮仅交付协议实现 + 可配置，未做真机联调**，详见 [REMOTE_HOST.md](REMOTE_HOST.md)。
 
 ### 已知限制（如实记录）
 
@@ -187,5 +188,6 @@ Mist Glass 是一套基于“雾面玻璃 + 柔和分层”的 Compose 设计令
 6. **共存模式需重新配置系统级能力**：LSPosed 按包名识别模块，改包名后需启用新模块并重新勾选作用域；默认数字助理、无障碍服务、通知使用权等也需针对新包名重新授予。若两版模块同时启用，Hook 可能重复加载，建议只启用一个。
 7. **旧版升级不迁移数据**：`v3.4.0-refined1` 及更早版本使用旧包名 `io.github.mangi.eta`，升级到 `refined2` 属于全新安装，旧版数据不会自动迁移，需导出/导入备份。
 8. **未做真机共存验证**：本机无 Android 设备/模拟器，「两版可同时安装」的结论基于包名、签名、权限名与 Provider authority 的静态核查（无冲突项），以及 CI 构建通过，未做实机安装验证。
+9. **未验证项：远程连接未做真机联调**：本机无 Android 设备 / 模拟器，PC 端也未运行 `dsh web` 与 `ds-harness-remote` Host 插件，因此远程主机（直连与 Relay）**仅完成协议实现、单测与 CI 编译，未做真机联调，不宣称已连通**；WebRTC / LAN / P2P / TURN、SSH 主机、`/dsh-go/v1/*` 私有桥、DS Bot、工作区上传等均**未实现**。详见 [REMOTE_HOST.md](REMOTE_HOST.md)。
 
 因此，本文第 1–4 节中「替换视觉皮肤」「统一视觉语言」「逐屏验收」等表述应理解为**设计目标与分批迁移计划**，而非「全部界面已完成」。

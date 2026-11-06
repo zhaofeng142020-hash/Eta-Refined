@@ -27,6 +27,13 @@
 #                                               （应用内更新 / 关于页链接指向本仓库）
 #   - README.md、README_EN.md、docs/             （重构版说明与许可证声明）
 #   - .github/、scripts/                         （CI 与发布流水线）
+#   - app/src/main/kotlin/.../agent/remote/、.../data/remote/
+#                                               （远程主机协议层与存储，纯新增）
+#   - app/src/main/kotlin/.../ui/screens/remote/  （远程主机设置 / 切换 / 会话页，纯新增）
+#   - app/src/main/kotlin/.../ui/navigation/AppRoute.kt、ui/app/AgentAppRoot.kt、
+#     ui/SettingsScreen.kt                       （远程主机路由与设置入口，追加式接线）
+#   - app/src/main/res/values*/strings.xml        （三套语言远程主机文案）
+#   - docs/REMOTE_HOST.md                         （远程主机用户文档）
 #   注意：此清单仅为人工裁决依据，git merge 不会自动跳过这些文件；非冲突 hunk 仍会被正常合入。
 #
 # 权限：contents / pull-requests / issues 写权限，使用内置 secrets.GITHUB_TOKEN。
