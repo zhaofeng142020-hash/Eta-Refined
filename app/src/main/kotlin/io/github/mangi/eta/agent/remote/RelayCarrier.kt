@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
  *
  * Relay-only Carrier（零新依赖骨架）：
- * REST /api/v1/* + Control WS /ws/v1/connect + Noise IK → 把 harness.remote.* 映射回 DshCarrier。
+ * REST /api/v1/… + Control WS /ws/v1/connect + Noise IK → 把 harness.remote.* 映射回 DshCarrier。
  * 明确不做 WebRTC / LAN / P2P / TURN / relay.attach / transfer 分块。
  * 本轮未与真实 Host 联调，协议骨架 + 单测覆盖；失败一律给稳定错误码，不静默降级。
  */
@@ -29,7 +29,7 @@ import kotlin.coroutines.resumeWithException
 
 private val RELAY_JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
-/** REST /api/v1/*：账号、设备目录。Bearer token 由调用方注入，绝不写日志。 */
+/** REST /api/v1/…：账号、设备目录。Bearer token 由调用方注入，绝不写日志。 */
 internal class RelayRestClient(private val serverUrl: String) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
