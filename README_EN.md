@@ -25,10 +25,12 @@ Requires **Android 13 or later on ARM64 devices**. The app is not tied to any ph
 ## Quick start
 
 1. **Download**: get the `Eta-Refined` APK from [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases).
-2. **Install**: install the APK on an Android 13+ ARM64 device (allow installation from unknown sources on first install).
+2. **Install**: install the APK on an Android 13+ ARM64 device (allow installation from unknown sources on first install). Eta-Refined uses its own signing certificate **and its own package name** (`io.github.mangi.eta.refined`), so it **can be installed alongside the original Eta** — it will not replace or overwrite it, and the two apps keep separate data. No need to uninstall the original.
 3. **Configure and chat**: on first launch the **setup wizard** opens automatically. It walks you through model, appearance, and permission steps; each step can jump straight to the relevant settings page, so you enter your **API Key** (or sign in with a **Codex / Grok** subscription) and pick a default model under **Settings → Model Providers**. You can skip the wizard and configure later. Then start a conversation.
 
 > Running tasks requires a model with **Tool Calling** support; interpreting images also requires image input support. Chat and the system assistant entry points do not work until a model is configured.
+>
+> On Root / LSPosed devices: LSPosed identifies modules by package name, so enable **Eta-Refined** as a new module and re-select its scope. The default digital assistant, accessibility service, and other system-level grants are also per-package and must be re-selected. See [docs/FAQ.md](docs/FAQ.md) for details.
 
 ## Capabilities
 
@@ -92,7 +94,8 @@ Eta-Refined differs from the original Eta only in the **visual and interaction l
 - **Mist Glass color token layer (delivered):** a Compose-based color token layer has been **introduced and wired into `AgentAppTheme`** as the global theme entry point, replacing the default Miuix palette. Color tokens are in effect across the app.
 - **Design token layer (partially delivered, migration in batches):** tokens for shapes, spacing, typography, motion, glass tiers, and responsive breakpoints are defined in `ui/theme2/` and have been applied to the chat input bar, tool chips, empty states, error cards, and the onboarding wizard. Other existing screens (`SettingsScreen`, chat bubbles, top bars, and so on) still use their original literal values and are **being migrated in batches**. Glass tiers are an approximation — semi-transparent fill plus a hairline stroke — **not a true background blur**.
 - **First-launch onboarding wizard (delivered):** the wizard is wired into the startup path with a persisted first-launch flag, conditional rendering in `MainActivity`, and routed "go configure" actions in `AgentAppRoot` that lead to the model, appearance, and permission settings; the skip action works.
-- **Unified error card (partially delivered):** `MistErrorCard` (title, actionable fix hint, retry) has been introduced and wired into the conversation-load-failure path; the remaining 20+ Toast sites are being migrated gradually. Empty states in lists now delegate to `MistEmptyState`.
+- **Unified error card (partially delivered):** `MistErrorCard` (title, actionable fix hint, retry) has been introduced and wired into the conversation-load-failure path; the remaining 35+ Toast sites are being migrated gradually. Empty states in lists now delegate to `MistEmptyState`.
+- **Separate package name for side-by-side installation (delivered):** since `v3.4.0-refined2`, the `applicationId` is `io.github.mangi.eta.refined` (via `applicationIdSuffix`). Permission names and the ContentProvider authority use the `${applicationId}` placeholder, and the Hook-layer package constants were updated to match. Together with a separate signing certificate, this lets Eta-Refined be **installed alongside the original Eta** without replacing it, with fully isolated data. The in-app update checker points at this repository's Releases.
 - **Documentation and engineering (delivered):** README, FAQ, refactoring and upstream-sync notes have been rewritten; the original build system is kept, with documented release, signing, and upstream-sync workflows.
 
 Token details (colors, corner radii, 4-multiple spacing, type scale, motion durations, four glass tiers, responsive breakpoints), migration cost and risk, and the no-regression guarantees — together with an explicit **current implementation status** section — are recorded in **[docs/REFACTORING.md](docs/REFACTORING.md)**.

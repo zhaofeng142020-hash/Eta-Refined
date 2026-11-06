@@ -1,11 +1,15 @@
 package io.github.mangi.eta.core
 
+import io.github.mangi.eta.BuildConfig
+
 internal object ModuleConfig {
     const val TAG = "Eta"
     const val HOT_PATH_LOG_WINDOW_MS = 60_000L
 
     const val GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox"
-    const val ETA_PACKAGE = "io.github.mangi.eta"
+    // Hook 运行在 system_server / SystemUI 等被注入进程，拿不到 App Context，
+    // 因此使用编译期生成、已包含 applicationIdSuffix 的最终包名。
+    val ETA_PACKAGE: String = BuildConfig.REFINED_APPLICATION_ID
     const val BREENO_PACKAGE = "com.heytap.speechassist"
     const val COLOROS_MEMORY_PACKAGE = "com.oplus.aimemory"
     const val XIAOAI_PACKAGE = "com.miui.voiceassist"
@@ -16,7 +20,7 @@ internal object ModuleConfig {
     val AGENT_RUNTIME_ENTRY_PACKAGES = setOf(BREENO_PACKAGE, XIAOAI_PACKAGE)
     const val GOOGLE_ASSISTANT_COMPONENT =
         "$GOOGLE_PACKAGE/com.google.android.voiceinteraction.GsaVoiceInteractionService"
-    const val ETA_VOICE_INTERACTION_COMPONENT =
+    val ETA_VOICE_INTERACTION_COMPONENT: String =
         "$ETA_PACKAGE/io.github.mangi.eta.agent.voice.EtaVoiceInteractionService"
     const val ASSISTANT_ROLE = "android.app.role.ASSISTANT"
     const val SECURE_ASSISTANT = "assistant"

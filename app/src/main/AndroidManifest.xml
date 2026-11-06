@@ -34,11 +34,13 @@
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- 权限名与 Provider authority 使用 ${applicationId} 占位符：applicationIdSuffix 生效后
+         自动带上 .refined 后缀，避免与原版 Eta 的 signature 权限 / ContentProvider 重名导致安装冲突。 -->
     <permission
-        android:name="io.github.mangi.eta.permission.CONTROL_ACCESSIBILITY_PROTECTION"
+        android:name="${applicationId}.permission.CONTROL_ACCESSIBILITY_PROTECTION"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="io.github.mangi.eta.permission.CONTROL_ACCESSIBILITY_PROTECTION" />
+    <uses-permission android:name="${applicationId}.permission.CONTROL_ACCESSIBILITY_PROTECTION" />
 
     <queries>
         <package android:name="com.google.android.googlequicksearchbox" />
@@ -52,7 +54,7 @@
     </queries>
 
     <application
-        android:name=".EtaApp"
+        android:name="io.github.mangi.eta.EtaApp"
         android:allowBackup="false"
         android:description="@string/xposed_description"
         android:enableOnBackInvokedCallback="true"
@@ -64,7 +66,7 @@
         android:roundIcon="@mipmap/ic_launcher_round">
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name="io.github.mangi.eta.ui.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTask"
@@ -87,13 +89,13 @@
         </activity>
 
         <activity
-            android:name=".ui.screens.browser.AgentBrowserActivity"
+            android:name="io.github.mangi.eta.ui.screens.browser.AgentBrowserActivity"
             android:exported="false"
             android:theme="@style/Theme.Eta"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".agent.voice.EtaVoiceAssistActivity"
+            android:name="io.github.mangi.eta.agent.voice.EtaVoiceAssistActivity"
             android:excludeFromRecents="true"
             android:exported="true"
             android:noHistory="true"
@@ -107,7 +109,7 @@
         </activity>
 
         <service
-            android:name=".agent.voice.EtaVoiceInteractionService"
+            android:name="io.github.mangi.eta.agent.voice.EtaVoiceInteractionService"
             android:exported="true"
             android:label="@string/voice_interaction_service_label"
             android:permission="android.permission.BIND_VOICE_INTERACTION"
@@ -121,12 +123,12 @@
         </service>
 
         <service
-            android:name=".agent.voice.EtaVoiceInteractionSessionService"
+            android:name="io.github.mangi.eta.agent.voice.EtaVoiceInteractionSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
         <service
-            android:name=".agent.voice.EtaRecognitionService"
+            android:name="io.github.mangi.eta.agent.voice.EtaRecognitionService"
             android:exported="true"
             android:label="@string/recognition_service_label"
             android:permission="android.permission.BIND_SPEECH_RECOGNITION_SERVICE"
@@ -140,22 +142,22 @@
         </service>
 
         <service
-            android:name=".agent.voice.EtaAssistantOverlayService"
+            android:name="io.github.mangi.eta.agent.voice.EtaAssistantOverlayService"
             android:foregroundServiceType="microphone|mediaPlayback"
             android:exported="false" />
 
         <service
-            android:name=".agent.voice.ReadAloudPlaybackService"
+            android:name="io.github.mangi.eta.agent.voice.ReadAloudPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
         <service
-            android:name=".agent.runtime.AgentRuntimeService"
+            android:name="io.github.mangi.eta.agent.runtime.AgentRuntimeService"
             android:exported="true"
             tools:ignore="ExportedService" />
 
         <service
-            android:name=".agent.runtime.AgentExecutionService"
+            android:name="io.github.mangi.eta.agent.runtime.AgentExecutionService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
@@ -164,7 +166,7 @@
         </service>
 
         <service
-            android:name=".agent.accessibility.AgentAccessibilityService"
+            android:name="io.github.mangi.eta.agent.accessibility.AgentAccessibilityService"
             android:exported="true"
             android:label="@string/agent_accessibility_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
@@ -177,7 +179,7 @@
         </service>
 
         <service
-            android:name=".agent.device.AgentNotificationHistoryService"
+            android:name="io.github.mangi.eta.agent.device.AgentNotificationHistoryService"
             android:exported="false"
             android:label="@string/notification_history_service_label"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
@@ -187,8 +189,8 @@
         </service>
 
         <provider
-            android:name=".agent.accessibility.AgentAccessibilityHealthProvider"
-            android:authorities="io.github.mangi.eta.accessibility.health"
+            android:name="io.github.mangi.eta.agent.accessibility.AgentAccessibilityHealthProvider"
+            android:authorities="${applicationId}.accessibility.health"
             android:exported="true"
             android:grantUriPermissions="false"
             android:permission="android.permission.MANAGE_ACCESSIBILITY" />

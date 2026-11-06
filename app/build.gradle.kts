@@ -35,14 +35,20 @@ android {
     ndkVersion = libs.versions.ndk.get()
 
     defaultConfig {
+        // Eta-Refined 使用独立签名 + 独立包名，可与原版 Eta 同时安装、数据互不干扰，
+        // 也不会覆盖或替换原版。namespace 保持不变，Kotlin 源码 / R 类 / Manifest 相对类名均无需改动。
         applicationId = "io.github.mangi.eta"
+        applicationIdSuffix = ".refined"
+        // 供 Hook 层（运行在 system_server 等被注入进程、拿不到 App Context）读取最终包名。
+        // 必须与上面的 applicationIdSuffix 保持一致；修改后缀时两处需同步。
+        // 使用自定义 buildConfigField 而非 BuildConfig.APPLICATION_ID，避免 AGP 版本差异。
+        buildConfigField("String", "REFINED_APPLICATION_ID", "\"io.github.mangi.eta.refined\"")
         minSdk = 33
         targetSdk = 37
         // versionCode 规则：日期编码（年 4 位 + 月 2 位 + 日 2 位）加两位当日序号（01 起），发版时随 versionName 一起手动递增。
-        versionCode = 2026110501
-        // Eta-Refined 与原版 Eta 使用相同 applicationId 但不同签名，版本号加后缀避免混淆。
+        versionCode = 2026110601
         // 该值须与发布标签一致（release.yml 校验 tag == "v" + versionName）。
-        versionName = "3.4.0-refined1"
+        versionName = "3.4.0-refined2"
 
         ndk {
             // 同时过滤本地与依赖 AAR 的原生库，确保 APK 仅包含 ARM64。

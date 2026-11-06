@@ -12,13 +12,22 @@
 #   * 合并后构建失败：同样开 Issue 通知，不推送合并结果、不开合并 PR。
 #
 # 保留区清单（重构归属 Eta-Refined，冲突时一律人工处理并保留重构改动）：
+#   完整清单见 docs/UPSTREAM_SYNC.md 第 6 节，以下为高频项速查：
 #   - app/src/main/kotlin/.../ui/theme2/        （新版设计系统 / 主题）
 #   - app/src/main/kotlin/.../ui/onboarding/    （重构后的引导流程）
-#   - README.md、README_EN.md                   （重构版说明）
-#   - docs/                                     （重构版文档）
-#   - app/build.gradle.kts                      （包名 / 版本 / 签名）
-#   - .github/                                  （CI 与发布流水线）
-#   以上清单按重构进度维护；上游对这些路径的改动必须在本地手工合并后保留本地实现。
+#   - app/src/main/kotlin/.../ui/components/    （玻璃 / 错误卡 / 空状态 / 令牌落地）
+#   - app/src/main/kotlin/.../ui/MainActivity.kt、ui/app/AgentAppRoot.kt、AgentAppTheme.kt
+#   - app/build.gradle.kts、app/src/main/AndroidManifest.xml
+#                                               （独立包名共存：suffix / buildConfigField / 占位符 / 完整类名）
+#   - core/ModuleConfig.kt、agent/accessibility/AccessibilityProtectionProtocol.kt、
+#     agent/runtime/AgentRuntimeWire.kt、agent/runtime/EntrySurfaceGuard.kt、
+#     agent/virtualdisplay/CanvasRoutingPolicy.kt、hook/system/AccessibilityServiceEnforcer.kt
+#                                               （6 处自身包名常量，改包名后必须保留）
+#   - data/update/AppUpdateChecker.kt、ui/SettingsScreen.kt
+#                                               （应用内更新 / 关于页链接指向本仓库）
+#   - README.md、README_EN.md、docs/             （重构版说明与许可证声明）
+#   - .github/、scripts/                         （CI 与发布流水线）
+#   注意：此清单仅为人工裁决依据，git merge 不会自动跳过这些文件；非冲突 hunk 仍会被正常合入。
 #
 # 权限：contents / pull-requests / issues 写权限，使用内置 secrets.GITHUB_TOKEN。
 # 注意：由 GITHUB_TOKEN 创建的分支/PR 默认不会再触发其它工作流（防递归），
