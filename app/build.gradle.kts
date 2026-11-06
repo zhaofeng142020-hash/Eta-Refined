@@ -46,9 +46,9 @@ android {
         minSdk = 33
         targetSdk = 37
         // versionCode 规则：日期编码（年 4 位 + 月 2 位 + 日 2 位）加两位当日序号（01 起），发版时随 versionName 一起手动递增。
-        versionCode = 2026110601
+        versionCode = 2026110602
         // 该值须与发布标签一致（release.yml 校验 tag == "v" + versionName）。
-        versionName = "3.4.0-refined2"
+        versionName = "3.4.0-refined3"
 
         ndk {
             // 同时过滤本地与依赖 AAR 的原生库，确保 APK 仅包含 ARM64。
