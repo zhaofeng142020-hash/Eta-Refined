@@ -124,6 +124,49 @@ Eta-Refined **派生自 [Mangi-11/Eta](https://github.com/Mangi-11/Eta)**，原�
 
 两版数据目录完全隔离：卸载 Eta-Refined 只清除**重构版**的数据，原版数据不受影响。但若你要把重构版的对话/配置带过去，务必先导出备份再导入。系统级授权（无障碍、通知使用权、LSPosed 作用域、默认数字助理）是按包名记录的，切换版本后需要重新授予。
 
+## 远程主机（实验性）
+
+> 远程主机本轮为**协议实现 + 可配置**，PC 端前提未就绪时不可用，且**未做真机联调、不宣称已连通**。配置步骤、错误码与「未实现」清单见 [REMOTE_HOST.md](REMOTE_HOST.md)；背景见 [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) 的保留区清单。
+
+### Q17：远程主机连不上 / 一直「连接中」或报错，怎么办？
+
+按 PC 端前提逐项排查（详见 [REMOTE_HOST.md](REMOTE_HOST.md)）：
+
+1. **直连**：PC 是否已全局安装 `@deepseek-ai/dsh` 并运行 `dsh web`；填入的**带 token URL** 是否正确、未过期；手机与 PC 是否网络可达（同一局域网 / 端口转发 / 反向代理），PC 防火墙是否放行端口（默认 3080）。
+2. **Relay**：PC 端 the agent harness 是否已安装并启用 `ds-harness-remote` Host 插件、Host 是否在线；手机与 PC 是否用**同一账号**登录；默认第三方 Server `https://dsh.r2049.cn`（或自建地址）是否可达。
+3. 看状态卡给出的**错误码**与可操作建议（见[错误码表](REMOTE_HOST.md)）再点「重试」：`HOST_OFFLINE` / `CONNECTION_FAILED` 多为 PC 端或网络未就绪；`AUTH_INVALID` / `TOKEN_EXPIRED` 多为登录或 token 失效，重新登录、或重新复制 `dsh web` 打印的 URL 即可。
+4. **一次只连一台远程主机**：同一账号的其它连接会抢占（`CONNECTION_REPLACED`），先断开别处再重试。
+
+### Q18：提示「身份指纹不匹配」（`PEER_IDENTITY_MISMATCH`）是什么？
+
+这是 Relay 的 **Host 静态公钥 pin（TOFU）** 保护：首次连接时核对并记住主机指纹（形如 `ABCD EF01 2345`，48 bit），之后若指纹变化会**在建立任何连接之前直接拒绝**，防止中间人。
+
+- 先确认 PC 端是否**重装了 the agent harness / Host 插件、换了设备或换了账号**——这会产生新密钥，属正常。
+- 若确认是本人主机，在「设置 → 远程主机」中**忘记 / 重置该主机的信任**后重新连接并**重新核对指纹**。
+- 若无法确认，**不要连接**：可能有人冒充该主机。
+
+### Q19：提示「版本不兼容」（`HARNESS_VERSION_INCOMPATIBLE`）怎么办？
+
+协议要求 PC 端 Host 在安全通道建立后的第一条请求 `harness.transport.describe` 中声明 `harness.remote.v3`（DSH 0.2.x Session V3），否则拒绝连接。请把 PC 端 the agent harness 与 `ds-harness-remote` Host 插件升级到支持 `harness.remote.v3` 的版本（0.6.x 系 Host 插件）后重试；旧版本无法兼容。详见 [REMOTE_HOST.md](REMOTE_HOST.md)。
+
+### Q20：如何关闭第三方托管 Server `https://dsh.r2049.cn`？
+
+Relay 默认连接的 `https://dsh.r2049.cn` 是**第三方托管服务**（ds-harness-remote，MIT），不是 Eta-Refined 自有服务。在「设置 → 远程主机」中可：
+
+1. **关闭 Relay 开关**：关闭后不再连接任何 Relay Server，仅保留直连方式（或只用本机 Eta Agent）。
+2. **改为自建 Server 地址**：填自己的裸 origin（公网须 HTTPS，私网 host 才允许 HTTP）。
+3. **不添加任何远程主机**：默认使用本机 Eta Agent，不连接任何第三方 Server。
+
+关闭或改地址后，已保存主机与凭据不会被上传；凭据（token / Cookie / accessToken / refreshToken / X25519 私钥）只存本机 Android Keystore、不写日志。
+
+### Q21：新增的远程主机功能会影响「与原版 Eta 共存」吗？
+
+**不受影响，口径与上文「与原版共存说明」一致。** 远程主机只是 Eta-Refined App **内部新增的设置页、会话与协议层**：
+
+- 从 `v3.4.0-refined2` 起 Eta-Refined 使用独立包名 `io.github.mangi.eta.refined` 与独立签名，可与原版 Eta **同时安装、数据隔离、互不覆盖**；本功能**不改动**包名、签名、Provider authority 或任何系统级授权配置。
+- 远程主机列表、连接状态与凭据保存在 **Eta-Refined 自己的数据目录**（凭据经 Android Keystore 加密），与原版 Eta 互不相干；卸载 Eta-Refined 只清除重构版数据，原版不受影响。
+- 因此 LSPosed 作用域、默认数字助理、无障碍服务等系统级能力仍按上文「换包名后需重新配置」的既有说明处理，远程主机不会引入新的共存冲突。
+
 ## 其他
 
 ### Q15：后台任务被杀了怎么办？

@@ -20,7 +20,7 @@ Eta 是为手机和移动设备设计的 AI Agent，结合了 [Codex](https://op
 
 支持 **Android 13 及以上版本的 ARM64 设备**，App 本体不限手机品牌，基础功能无需 Root。Root 和 LSPosed 可进一步开放深层个人上下文、一方应用接口与系统助手入口，具体能力取决于授权和 ROM 适配。
 
-[下载 APK](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) · [快速开始](#快速开始) · [重构说明](#重构说明与差异) · [常见问题](docs/FAQ.md)
+[下载 APK](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) · [快速开始](#快速开始) · [远程主机](#远程主机) · [重构说明](#重构说明与差异) · [常见问题](docs/FAQ.md)
 
 ## 快速开始
 
@@ -76,6 +76,19 @@ Eta 自身实现了完整的 Android 原生数字助理服务（`VoiceInteractio
 
 内置 OpenAI 与 xAI 提供商可在填写 API Key 和订阅账号登录之间切换：Codex 通过 PKCE 授权，Grok 通过设备码授权，均由系统浏览器完成登录。OAuth 凭据经 Android Keystore 加密保存在本机不可备份目录，不进入跨进程通信或备份文件。Provider 层支持 OpenAI-compatible Chat Completions、Responses API、Anthropic Messages 和 Gemini 原生 Interactions API，包括 SSE、Tool Calling、图片输入与推理内容。
 
+## 远程主机
+
+> ⚠️ **实验性 · 仅「协议实现 + 可配置」 · 未做真机联调**：本轮只交付远程主机的协议层、设置界面与文档。**PC 端前提未就绪时功能不可用**；本机无 Android 设备、PC 端未运行 `dsh web`，因此**未做真机联调，不宣称已连通**。详见 [docs/REMOTE_HOST.md](docs/REMOTE_HOST.md)。
+
+Eta-Refined 可让**本机 Eta Agent 与远程主机并存、随时切换**（不选远程主机时仍用本机 Agent），把会话接到运行在电脑 / 服务器上的 the agent harness（DSH / `dsh web`）引擎。两种连接方式：
+
+- **直连（方案 A）**：PC 运行 `npm i -g @deepseek-ai/dsh` 后的 `dsh web`，把终端打印的**带 token URL**（形如 `http://192.168.1.5:3080/?token=…`）填入「设置 → 远程主机 → 直连主机」。
+- **Relay（中继）**：PC 端 the agent harness 安装 `ds-harness-remote` Host 插件并登录，手机用**同一账号**登录，从在线主机列表选一台，**首次核对身份指纹**后连接。
+
+> ⚠️ **第三方托管 Server 声明**：Relay 默认连接由第三方 [ds-harness-remote](https://github.com/liguobao/ds-harness-remote)（MIT）提供的托管 Server **`https://dsh.r2049.cn`**，并非 Eta-Refined 自有服务；可在「设置 → 远程主机」中**一键关闭**或改为**自建 Server 地址**，默认不静默上传任何凭据。所有凭据（launch token / Cookie / accessToken / refreshToken / X25519 私钥）**只存本机 Android Keystore，不写日志、不回显完整值**。
+
+配置步骤、PC 端前提、错误码表与「未实现」清单见 **[docs/REMOTE_HOST.md](docs/REMOTE_HOST.md)**；常见问题见 [docs/FAQ.md](docs/FAQ.md)。
+
 ## 权限与数据边界
 
 系统工具、敏感读取、敏感操作、终端与文件、网页浏览、记忆均有独立开关，当前默认开启。Runtime 在执行前重新检查权限，撤权或断连不会覆盖已保存的配置。
@@ -120,10 +133,11 @@ Eta-Refined 的功能更新跟随上游 **[Mangi-11/Eta](https://github.com/Mang
 
 ## 常见问题
 
-安装失败、签名冲突、API Key 配置、Root / LSPosed 权限、上游同步、如何升级与如何回退原版等问题，见 **[docs/FAQ.md](docs/FAQ.md)**。
+安装失败、签名冲突、API Key 配置、Root / LSPosed 权限、远程主机连接、上游同步、如何升级与如何回退原版等问题，见 **[docs/FAQ.md](docs/FAQ.md)**。
 
 ## 深入了解
 
+- [远程主机](docs/REMOTE_HOST.md)：直连 / Relay 两种连接方式、PC 端前提、第三方 Server 声明、错误码与未实现清单（实验性，未做真机联调）。
 - [重构说明与差异](docs/REFACTORING.md)：技术栈取舍、Mist Glass 设计令牌、目录变更与风险控制。
 - [上游同步说明](docs/UPSTREAM_SYNC.md)：同步源、分支策略、冲突处理与保留区。
 - [常见问题](docs/FAQ.md)：安装、配置、权限、升级与回退。

@@ -857,6 +857,24 @@ private fun SettingsPageContent(
                     )
                 }
             }
+
+            // ── 远程主机 ──────────────────────────────────────────────────
+            item(key = "section_remote_hosts") {
+                SmallTitle(stringResource(R.string.remote_settings_group))
+                SettingsGroupCard {
+                    ArrowPreference(
+                        title = stringResource(R.string.remote_settings_entry_title),
+                        summary = stringResource(R.string.remote_settings_entry_summary),
+                        startAction = {
+                            SettingsIcon(
+                                icon = Icons.Rounded.Cloud,
+                                tint = SettingsIconColors.Blue,
+                            )
+                        },
+                        onClick = { onNavigate(AppRoute.RemoteHosts) },
+                    )
+                }
+            }
         }
 
         SystemizerConfirmDialog(

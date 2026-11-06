@@ -52,6 +52,11 @@ Eta-Refined 是 [Mangi-11/Eta](https://github.com/Mangi-11/Eta) 的派生仓库�
 | `README.md`、`README_EN.md` | 重构版说明文档（含来源与许可证声明） |
 | `docs/` | 重构说明、同步说明、FAQ、归因等文档 |
 | `.github/workflows/`、`scripts/` | CI/CD（发布、上游同步、PR 检查）与开源引导脚本 |
+| `app/src/main/kotlin/io/github/mangi/eta/agent/remote/`、`.../data/remote/` | 远程主机协议层与存储（纯新增目录，上游不会冲突） |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/screens/remote/` | 远程主机设置页 / 主机切换胶囊 / 远程会话页（纯新增） |
+| `app/src/main/kotlin/io/github/mangi/eta/ui/navigation/AppRoute.kt`、`ui/app/AgentAppRoot.kt`、`ui/SettingsScreen.kt` | 远程主机导航路由与设置入口（**追加式**接线，上游改动需人工合并） |
+| `app/src/main/res/values*/strings.xml` | 三套语言远程主机文案（`remote_` 前缀，同步追加） |
+| `docs/REMOTE_HOST.md` | 远程主机用户文档（纯新增，已含于 `docs/` 保留区，单列便于核对） |
 
 > `docs/` 下若包含上游原有文档（如 `TECHNICAL.md`、`AGENT_RUNTIME.md`），同步时按文件级判断：新增的重构文档优先保留，上游对既有技术文档的更新可正常吸收。
 >
