@@ -169,8 +169,12 @@ Mist Glass 是一套基于“雾面玻璃 + 柔和分层”的 Compose 设计令
   - **设计令牌**：圆角 / 间距 / 字号 / 动效令牌已落地到**聊天输入条**（`MistShapes.xl` 28dp）、**ToolChip**（`sm` 圆角 + 间距令牌）、**空状态**（`ListEmptyState` 委托 `MistEmptyState`）、**错误卡**与**首启向导**（进度条动效消费 `MistMotion` / `MistShapes`）。**其余现有界面（`SettingsScreen`、聊天气泡、顶栏等）尚未迁移，仍为分批迁移中**。
   - **统一错误提示**：已新增 `MistErrorCard`（标题 + 修复建议 + 重试）并**接入会话加载失败场景**；全仓其余约 **35 处** `Toast.makeText` **尚未收敛，逐步迁移中**。
 - **玻璃材质说明**：当前以**半透明填充 + 发丝描边近似**，**非真背景模糊**；无法兑现的 `blurRadiusDp` 已从 `MistDimens.kt` 删除，四档玻璃为设计档位定义（见第 2 节）。
-- **功能不回归**：`agent/`、`hook/`、`core/`、`systemizer/`、`config/`、`EtaApp` 与全部 302 个单元测试保持上游原样；业务逻辑与系统适配不受影响。
-- **派生版身份适配（仅 2 处 URL 常量）**：`data/update/AppUpdateChecker.kt`（应用内更新检查）与 `ui/SettingsScreen.kt`（关于页「反馈问题 / 项目主页」）原先指向 `Mangi-11/Eta`，已改为 Eta-Refined 仓库。原因：本派生版使用独立签名证书，若更新检查仍指向上游 Releases，会推荐**签名不同、无法覆盖安装**的原版 APK。这是必要的最小改动，已列入[保留区清单](UPSTREAM_SYNC.md#6-重构保留区清单)，上游同步时需人工保留。
+- **功能不回归**：上游 302 个单元测试全部保留并通过；业务逻辑实现（Agent Runtime、设备工具、Hook 行为逻辑）未改语义。为支持独立包名，仅把 6 处「自身包名常量」由硬编码改为 `BuildConfig.REFINED_APPLICATION_ID`，并把 Manifest 权限/authority 改为 `${applicationId}` 占位符——这些是身份标识而非业务行为。
+- **派生版身份适配（URL 常量 + 独立包名）**：
+  - `data/update/AppUpdateChecker.kt`（应用内更新检查）与 `ui/SettingsScreen.kt`（关于页「反馈问题 / 项目主页」）原先指向 `Mangi-11/Eta`，已改为 Eta-Refined 仓库，避免推荐签名不同的上游 APK。
+  - 从 `v3.4.0-refined2` 起通过 `applicationIdSuffix = ".refined"` 把最终 `applicationId` 改为 `io.github.mangi.eta.refined`（`namespace` 保持不变，Kotlin 源码目录、`R` 类均不用动）。改动位置：`app/build.gradle.kts`（suffix + `buildConfigField REFINED_APPLICATION_ID` + `versionCode/versionName`）、`AndroidManifest.xml`（权限名与 Provider authority 改用 `${applicationId}` 占位符，14 处相对组件类名展开为完整类名）、`core/ModuleConfig.kt`、`agent/accessibility/AccessibilityProtectionProtocol.kt`、`agent/runtime/AgentRuntimeWire.kt`、`agent/runtime/EntrySurfaceGuard.kt`、`agent/virtualdisplay/CanvasRoutingPolicy.kt`、`hook/system/AccessibilityServiceEnforcer.kt`（6 处硬编码包名改为 `BuildConfig.REFINED_APPLICATION_ID`）。
+  - 效果：配合独立签名证书，Eta-Refined **可与原版 Eta 同时安装、数据隔离、互不覆盖**；安装不会替换原版。已列入[保留区清单](UPSTREAM_SYNC.md#6-重构保留区清单)，上游同步时需人工保留。
+  - 代价：LSPosed 按包名识别模块，需在 LSPosed 中启用新模块并重新勾选作用域；默认数字助理、无障碍服务等系统级授权需针对新包名重新选择；`v3.4.0-refined1` 及更早版本的用户升级时属于全新安装，数据需导出/导入迁移。详见 [FAQ.md](FAQ.md)。
 - **属于事实的部分**：来源声明、CI / 发布 / 上游同步机制（见 [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md)）、文档与许可证均按仓库现状如实描述。
 
 ### 已知限制（如实记录）
@@ -180,5 +184,8 @@ Mist Glass 是一套基于“雾面玻璃 + 柔和分层”的 Compose 设计令
 3. **玻璃材质为近似**：Compose 无 Flutter `BackdropFilter` 的等价物，用半透明填充 + 发丝描边实现，不是真背景模糊（见上文）。
 4. **未新增单元测试**：新增的 9 个 Kotlin 组件文件目前没有配套单元测试；现有 302 个上游测试全部保留并通过。
 5. **质量门禁的取舍**：仓库 ruleset 要求「必须经 PR 合入 main」，但**未启用必需状态检查**——因为 `GITHUB_TOKEN` 创建的上游同步 PR 不会自动触发 `PR Check`，启用会令同步 PR 永久卡住。上游同步工作流在**合并前的同步分支上**已跑 `lintDebug` / `testDebugUnitTest` / `assembleDebug`，失败时不开合并 PR；PR 页面上的检查需维护者手动 re-run（工作流会主动核对并留言提示）。
+6. **共存模式需重新配置系统级能力**：LSPosed 按包名识别模块，改包名后需启用新模块并重新勾选作用域；默认数字助理、无障碍服务、通知使用权等也需针对新包名重新授予。若两版模块同时启用，Hook 可能重复加载，建议只启用一个。
+7. **旧版升级不迁移数据**：`v3.4.0-refined1` 及更早版本使用旧包名 `io.github.mangi.eta`，升级到 `refined2` 属于全新安装，旧版数据不会自动迁移，需导出/导入备份。
+8. **未做真机共存验证**：本机无 Android 设备/模拟器，「两版可同时安装」的结论基于包名、签名、权限名与 Provider authority 的静态核查（无冲突项），以及 CI 构建通过，未做实机安装验证。
 
 因此，本文第 1–4 节中「替换视觉皮肤」「统一视觉语言」「逐屏验收」等表述应理解为**设计目标与分批迁移计划**，而非「全部界面已完成」。

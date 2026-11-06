@@ -11,34 +11,38 @@
 1. **系统版本与架构**：Eta-Refined 要求 **Android 13 及以上、ARM64（arm64-v8a）** 设备。32 位 ARM、x86 或 x86_64 不受支持。
 2. **存储空间**：确认剩余空间足够（含安装与解压）。
 3. **来源安装权限**：首次安装需允许“安装未知来源应用”。
-4. **签名冲突**：若设备上已安装其他来源的 Eta（签名不同），系统会拒绝覆盖安装，见 Q2。
+4. **旧版 Eta-Refined 包名不同**：`v3.4.0-refined1` 及更早版本使用 `io.github.mangi.eta`，从 `v3.4.0-refined2` 起改为 `io.github.mangi.eta.refined`，两者是不同应用（见下方「与原版共存说明」）。
 
-### Q2：提示签名冲突（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）怎么办？
+### Q2：会和原版 Eta 冲突吗？提示 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` 怎么办？
 
-Eta-Refined 与原版 Eta、以及不同构建渠道的 APK 可能使用**不同签名证书**。Android 不允许用不同签名覆盖安装同一包名。
+**从 `v3.4.0-refined2` 起不会冲突**。Eta-Refined 使用独立签名证书，且 `applicationId` 已改为 `io.github.mangi.eta.refined`（原版为 `io.github.mangi.eta`）。包名不同 = 两个独立应用，可以**同时安装、数据互不干扰、互不覆盖**。直接安装即可，无需卸载原版。
 
-处理方式：
+签名冲突只可能出现在以下场景：
 
-1. **先备份数据**：在旧版中导出对话、模型配置与记忆（设置内的导入/导出）。
-2. **卸载旧版**：卸载设备上已安装的 Eta（注意：卸载会清除应用本地数据）。
-3. **安装 Eta-Refined**：重新安装并选择“恢复”导入此前备份。
+1. **从 `v3.4.0-refined1` 或更早版本升级**：旧版包名是 `io.github.mangi.eta`，新版是 `io.github.mangi.eta.refined`，属于「安装一个新应用」而非覆盖升级。旧版会保留在设备上（可自行卸载），其数据**不会自动迁移**到新版——请先在旧版中导出备份，安装新版后导入恢复。
+2. **安装了别人用其他证书签名的同包名 APK**（例如自行构建的 `refined` 版本）：此时因签名不同无法覆盖，需先卸载那个包再安装。
 
-> 若你需要从 Eta-Refined **回退到原版**，同样会因签名不同而需要先卸载；见 Q13。
+> 若你需要从 Eta-Refined **回退到原版**，由于包名不同，原版本来就可以直接安装/保留，无需卸载 Eta-Refined；见 Q13。
 
 ### Q3：如何升级到新版本？
 
-- 从 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 下载新的 Eta-Refined APK，直接覆盖安装即可（**相同签名**时保留数据）。
-- 若新版本更换了签名，会触发 Q2 的签名冲突，此时需先备份、卸载、再安装并恢复。
+- 从 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 下载新的 Eta-Refined APK，直接覆盖安装即可（**相同包名 + 相同签名**时保留数据）。
+- 若是从 `v3.4.0-refined1` 及更早版本升级，包名已变化，属于全新安装，数据需导出/导入迁移（见 Q2）。
 - 升级前建议先导出备份，以防异常。
 
-### 签名差异与数据说明（从原版切换前必读）
+### 与原版共存说明（包名、签名与系统级配置）
 
-Eta-Refined 使用**新建的发布证书**，与原版 Eta 的签名证书**不同**；但两者的 `applicationId`（`io.github.mangi.eta`）与 `versionName`（如 `3.4.0`）**相同**。因此：
+从 `v3.4.0-refined2` 起：
 
-- **无法覆盖安装**：Android 会因签名不一致拒绝覆盖（见 Q2），必须**先卸载、再安装**，不能直接升级。
-- **从原版切到本仓库会清空本地数据**：卸载会清除应用本地数据（对话、模型配置、记忆、角色等）。请务必先在原版中导出备份，安装 Eta-Refined 后再导入恢复；系统级授权（无障碍、通知使用权、LSPosed 作用域等）通常也需重新授予（见 Q14）。
-- **本仓库内部升级不受影响**：从本仓库旧版本升级到本仓库新版本，只要签名一致即可直接覆盖安装并保留数据（见 Q3）。
-- **避免版本混淆**：由于 `versionName` 与原版一致，第三方市场或更新检查可能把两者误判为同一应用；请始终以本仓库 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 作为下载来源。
+- **包名**：`io.github.mangi.eta.refined`（通过 `applicationIdSuffix = ".refined"` 实现），Kotlin `namespace` 仍为 `io.github.mangi.eta`，源码与资源不受影响。
+- **签名**：使用本仓库新建的独立发布证书，与原版不同。
+- **效果**：可与原版 Eta 同时安装，两者数据目录、SharedPreferences、数据库完全隔离；安装 Eta-Refined **不会替换或清除原版**。
+- **需要重新配置的系统级能力**（因为它们按包名识别应用）：
+  - **LSPosed / Xposed**：LSPosed 按包名识别模块，需在 LSPosed 中启用 **Eta-Refined** 这个新模块并重新勾选作用域。若同时启用原版模块，两套 Hook 可能重复加载，**建议只启用一个**。
+  - **系统默认数字助理 / 长按电源键路由**：需在系统设置中重新选择 Eta-Refined 作为默认数字助理。
+  - **无障碍服务、通知使用权、电池优化白名单**等：需在系统设置中针对新包名重新授予（见 Q14）。
+  - **应用内更新检查**：已指向本仓库 Releases，不会推荐原版 APK。
+- **避免版本混淆**：`versionName` 带 `-refinedN` 后缀，与原版区分；请始终以本仓库 [Releases](https://github.com/zhaofeng142020-hash/Eta-Refined/releases) 作为下载来源。
 
 ## 模型与 API Key
 
@@ -107,16 +111,18 @@ Eta-Refined **派生自 [Mangi-11/Eta](https://github.com/Mangi-11/Eta)**，原�
 
 ### Q13：如何回退到原版 Eta？
 
-1. 在 Eta-Refined 中**导出备份**（对话、模型配置、记忆、角色等）。
-2. **卸载 Eta-Refined**（因签名不同，无法直接覆盖）。
-3. 从 [Mangi-11/Eta Releases](https://github.com/Mangi-11/Eta/releases) 下载原版 APK 并安装。
-4. 按原版支持的方式恢复数据（注意：原版与重构版的备份格式若有差异，以原版导入能力为准）。
+从 `v3.4.0-refined2` 起，Eta-Refined 与原版**包名不同，可以共存**，因此回退**无需卸载 Eta-Refined**：
 
-> 回退会失去重构版新增的界面与向导，但业务功能与原版一致。
+1. 在 Eta-Refined 中**导出备份**（对话、模型配置、记忆、角色等）——若原版仍在设备上，其数据本来就一直保留，未受影响。
+2. 从 [Mangi-11/Eta Releases](https://github.com/Mangi-11/Eta/releases) 下载原版 APK 并安装（若原版仍在设备上，直接使用即可）。
+3. 在系统设置中把默认数字助理、无障碍服务、LSPosed 作用域等切回原版。
+4. 可自行卸载 Eta-Refined；卸载只会清除**重构版本身**的数据，不会影响原版。
+
+> 若你使用的是 `v3.4.0-refined1` 或更早版本（包名与原版相同），仍需先卸载重构版才能装回原版；建议直接升级到 `refined2` 及以后版本以摆脱这个限制。
 
 ### Q14：回退后数据还在吗？
 
-卸载会清除应用本地数据。**务必先导出备份**。系统级授权（无障碍、通知使用权、LSPosed 作用域等）通常需要重新授予。
+两版数据目录完全隔离：卸载 Eta-Refined 只清除**重构版**的数据，原版数据不受影响。但若你要把重构版的对话/配置带过去，务必先导出备份再导入。系统级授权（无障碍、通知使用权、LSPosed 作用域、默认数字助理）是按包名记录的，切换版本后需要重新授予。
 
 ## 其他
 

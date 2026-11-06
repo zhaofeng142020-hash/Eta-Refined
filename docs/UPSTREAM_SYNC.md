@@ -47,6 +47,8 @@ Eta-Refined 是 [Mangi-11/Eta](https://github.com/Mangi-11/Eta) 的派生仓库�
 | `app/src/main/kotlin/io/github/mangi/eta/ui/components/ListEmptyState.kt`、`ToolChip.kt`、`AgentConversationLoading.kt`、`AgentChatInputBar.kt` | 已落地令牌/错误卡的既有组件，上游更新需人工合并 |
 | `app/src/main/kotlin/io/github/mangi/eta/ui/MainActivity.kt`、`ui/app/AgentAppRoot.kt`、`ui/app/AgentAppTheme.kt` | 向导接线、目标路由、主题接入点 |
 | `data/update/AppUpdateChecker.kt`、`ui/SettingsScreen.kt` | 派生版身份适配（更新检查 / 关于页链接指向 Eta-Refined） |
+| `app/build.gradle.kts`、`app/src/main/AndroidManifest.xml` | **独立包名共存所需**：`applicationIdSuffix`、`REFINED_APPLICATION_ID` buildConfigField、版本号；Manifest 中 `${applicationId}` 占位符与 14 处完整类名 |
+| `core/ModuleConfig.kt`、`agent/accessibility/AccessibilityProtectionProtocol.kt`、`agent/runtime/AgentRuntimeWire.kt`、`agent/runtime/EntrySurfaceGuard.kt`、`agent/virtualdisplay/CanvasRoutingPolicy.kt`、`hook/system/AccessibilityServiceEnforcer.kt` | 6 处自身包名常量改为 `BuildConfig.REFINED_APPLICATION_ID`，上游改动需人工合并 |
 | `README.md`、`README_EN.md` | 重构版说明文档（含来源与许可证声明） |
 | `docs/` | 重构说明、同步说明、FAQ、归因等文档 |
 | `.github/workflows/`、`scripts/` | CI/CD（发布、上游同步、PR 检查）与开源引导脚本 |
